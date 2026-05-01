@@ -1,5 +1,6 @@
 'use client'
 import { useRef, useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 
 export interface AnnotatedPhoto {
   url: string
@@ -21,7 +22,19 @@ export default function PhotoAnnotator({ photoUrl, onSave, onCancel }: PhotoAnno
   const [notes, setNotes] = useState('')
   const [notesError, setNotesError] = useState(false)
   const [imageLoaded, setImageLoaded] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const lastPos = useRef<{ x: number; y: number } | null>(null)
+
+  /* ── Mount check + body scroll lock ── */
+  useEffect(() => {
+    setMounted(true)
+    // Prevent the underlying form from scrolling on iOS while modal is open
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [])
 
   /* ── Load the photo onto the canvas ── */
   useEffect(() => {
@@ -140,7 +153,9 @@ export default function PhotoAnnotator({ photoUrl, onSave, onCancel }: PhotoAnno
     )
   }
 
-  return (
+  if (!mounted) return null
+
+  const modal = (
     /* ── Full-screen modal overlay ── */
     <div
       style={{
@@ -387,4 +402,6 @@ export default function PhotoAnnotator({ photoUrl, onSave, onCancel }: PhotoAnno
       `}</style>
     </div>
   )
+
+  return createPortal(modal, document.body)
 }
