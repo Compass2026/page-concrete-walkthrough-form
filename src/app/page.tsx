@@ -503,6 +503,39 @@ export default function HubPage() {
                 </svg>
               </div>
             </Link>
+
+            {/* Card 4 – Field Tech Inbox */}
+            <Link
+              href="/field"
+              className="tool-card"
+              id="tool-card-field-inbox"
+              aria-label="Field Tech Inbox"
+            >
+              <div
+                className="card-icon-wrap"
+                style={{ background: 'rgba(22, 163, 74, 0.08)' }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                </svg>
+              </div>
+              <span
+                className="card-badge"
+                style={{ background: '#F0FDF4', color: '#16A34A' }}
+              >
+                Inbox
+              </span>
+              <div className="card-title">Tech Inbox</div>
+              <div className="card-desc">
+                View all pending walkthroughs assigned to the crew and jump straight into the job.
+              </div>
+              <div className="card-cta" style={{ color: '#16A34A' }}>
+                Open Inbox
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 8h10M9 4l4 4-4 4" />
+                </svg>
+              </div>
+            </Link>
           </div>
         </main>
 
