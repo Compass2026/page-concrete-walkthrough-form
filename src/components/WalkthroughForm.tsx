@@ -1,13 +1,32 @@
 'use client'
 import { useForm, Controller } from 'react-hook-form'
 import { useState, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import PhotoUpload from './PhotoUpload'
 
+/* ── Constant choice arrays ────────────────────────────────── */
+const PROJECT_TYPES = [
+  { value: 'Concrete',  emoji: '🪨', label: 'Concrete' },
+  { value: 'Fencing',   emoji: '🔩', label: 'Fencing'  },
+  { value: 'Decking',   emoji: '🪵', label: 'Decking'  },
+  { value: 'Other',     emoji: '📋', label: 'Other'    },
+] as const
+
+const THICKNESS_OPTIONS = ['4"', '6"', 'Other'] as const
+const PSI_OPTIONS        = ['3500', '4000', '5000', 'Unsure'] as const
+
+const DEMO_OPTIONS = [
+  { value: 'None',               icon: '✅', title: 'None',               desc: 'No demolition needed' },
+  { value: 'Dirt Excavation',    icon: '⛏️', title: 'Dirt Excavation',    desc: 'Soil / grading removal' },
+  { value: 'Concrete Tear-out/Haul Away', icon: '🚛', title: 'Tear-out & Haul Away', desc: 'Remove existing concrete' },
+] as const
+
 /* ── Types ──────────────────────────────────────────────────── */
-type ProjectType = 'Concrete' | 'Deck' | 'Fence' | 'Commercial' | ''
+type ProjectType = 'Concrete' | 'Fencing' | 'Decking' | 'Other' | ''
 
 interface FormValues {
+  // Contact
   first_name: string
   last_name: string
   phone: string
@@ -18,47 +37,34 @@ interface FormValues {
   state: string
   country: string
   postal_code: string
+  // Project
   project_type: ProjectType
-  // Concrete
-  concrete_type: string
-  concrete_total_sq_ft: string
+  // Concrete-specific
+  concrete_sqft: number
+  concrete_thickness: string
   concrete_psi: string
-  number_of_steps: string
-  step_width: string
-  step_height: string
-  step_tread_depth: string
-  platform_size_sq_ft: string
-  // Deck
-  deck_size_sq_ft: string
-  deck_height: string
-  deck_stairs_needed: string
-  deck_railings_needed: string
-  // Fence
-  fence_length_linear_ft: string
-  fence_type: string
-  fence_height: string
-  fence_gate_needed: string
-  // Logistics
-  demo_required: string
-  difficult_to_access: string
-  haul_off_away: string
+  concrete_demo: string
+  // Fencing-specific
+  fence_linear_feet: number
+  fence_height_material: string
+  gate_details: string
+  // All types
+  optional_addons: string
   notes: string
-  // Photos (stored as public URLs after auto-upload)
   job_photos: string[]
 }
 
 const REQUIRED = 'Required'
 
+/* ── Framer motion variants ────────────────────────────────── */
+const sectionVariants = {
+  hidden:  { opacity: 0, height: 0, y: -12, scale: 0.98 },
+  visible: { opacity: 1, height: 'auto', y: 0, scale: 1, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
+  exit:    { opacity: 0, height: 0, y: -8, scale: 0.98, transition: { duration: 0.25, ease: 'easeInOut' } },
+}
+
 /* ── Field wrapper component ──────────────────────────────── */
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string
-  error?: string
-  children: React.ReactNode
-}) {
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column' }}>
       <label className="field-label">{label}</label>
@@ -69,17 +75,7 @@ function Field({
 }
 
 /* ── Section header helper ────────────────────────────────── */
-function SectionHeader({
-  icon,
-  color,
-  title,
-  subtitle,
-}: {
-  icon: string
-  color: string
-  title: string
-  subtitle: string
-}) {
+function SectionHeader({ icon, color, title, subtitle }: { icon: string; color: string; title: string; subtitle: string }) {
   return (
     <div className="section-header">
       <span className={`section-header-icon ${color}`}>{icon}</span>
@@ -91,45 +87,90 @@ function SectionHeader({
   )
 }
 
+/* ── Pill button component ────────────────────────────────── */
+function PillButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button type="button" className={`pill-btn${active ? ' active' : ''}`} onClick={onClick}>
+      {label}
+    </button>
+  )
+}
+
+/* ── Grid card button component ───────────────────────────── */
+function GridCard({ icon, title, desc, active, onClick }: { icon: string; title: string; desc: string; active: boolean; onClick: () => void }) {
+  return (
+    <button type="button" className={`grid-card-btn${active ? ' active' : ''}`} onClick={onClick}>
+      <span className="card-icon">{icon}</span>
+      <span className="card-content">
+        <span className="card-title">{title}</span>
+        <span className="card-desc">{desc}</span>
+      </span>
+    </button>
+  )
+}
+
+/* ── Slider + number input ────────────────────────────────── */
+function SliderNumberInput({
+  value, onChange, min = 0, max = 2000, step = 10, unit = 'sq ft',
+}: {
+  value: number; onChange: (v: number) => void; min?: number; max?: number; step?: number; unit?: string
+}) {
+  return (
+    <div className="slider-container">
+      <div className="slider-row">
+        <input
+          type="number"
+          className="slider-input-number"
+          value={value || ''}
+          min={min}
+          max={max}
+          inputMode="numeric"
+          placeholder="0"
+          onChange={(e) => onChange(Number(e.target.value) || 0)}
+        />
+        <input
+          type="range"
+          className="slider-range"
+          min={min}
+          max={max}
+          step={step}
+          value={value || 0}
+          onChange={(e) => onChange(Number(e.target.value))}
+        />
+      </div>
+      <span className="slider-value-label">
+        {value ? `${value.toLocaleString()} ${unit}` : `Slide or type ${unit}`}
+      </span>
+    </div>
+  )
+}
+
 /* ── Progress calculator ──────────────────────────────────── */
 function calcProgress(values: Partial<FormValues>): number {
-  const always = [
-    values.first_name, values.last_name, values.phone,
-    values.street_address, values.city, values.state,
-    values.project_type,
-  ]
+  const always = [values.first_name, values.last_name, values.phone, values.street_address, values.city, values.state, values.project_type]
   const alwaysTotal = always.length
   const alwaysFilled = always.filter(Boolean).length
 
-  // section fills
   let sectionFilled = 0
   let sectionTotal = 0
 
   if (values.project_type === 'Concrete') {
     sectionTotal = 3
-    if (values.concrete_type) sectionFilled++
-    if (values.concrete_total_sq_ft) sectionFilled++
+    if (values.concrete_sqft) sectionFilled++
+    if (values.concrete_thickness) sectionFilled++
     if (values.concrete_psi) sectionFilled++
-  } else if (values.project_type === 'Deck') {
+  } else if (values.project_type === 'Fencing') {
     sectionTotal = 2
-    if (values.deck_size_sq_ft) sectionFilled++
-    if (values.deck_height) sectionFilled++
-  } else if (values.project_type === 'Fence') {
-    sectionTotal = 3
-    if (values.fence_length_linear_ft) sectionFilled++
-    if (values.fence_type) sectionFilled++
-    if (values.fence_height) sectionFilled++
+    if (values.fence_linear_feet) sectionFilled++
+    if (values.fence_height_material) sectionFilled++
+  } else if (values.project_type === 'Decking' || values.project_type === 'Other') {
+    sectionTotal = 1
+    if (values.notes) sectionFilled++
   }
 
-  // logistics
-  const logistics = [values.demo_required, values.difficult_to_access, values.haul_off_away]
-  const logisticsTotal = logistics.length
-  const logisticsFilled = logistics.filter(Boolean).length
-
-  // photos optional bonus
   const photoBonus = (values.job_photos?.length ?? 0) > 0 ? 1 : 0
-  const total = alwaysTotal + sectionTotal + logisticsTotal + 1
-  const filled = alwaysFilled + sectionFilled + logisticsFilled + photoBonus
+  const total = alwaysTotal + sectionTotal + 1
+  const filled = alwaysFilled + sectionFilled + photoBonus
   return Math.min(100, Math.round((filled / total) * 100))
 }
 
@@ -143,81 +184,70 @@ export default function WalkthroughForm() {
   const [progress, setProgress] = useState(0)
 
   const {
-    register,
-    handleSubmit,
-    watch,
-    control,
-    reset,
+    register, handleSubmit, watch, control, reset, setValue,
     formState: { errors },
   } = useForm<FormValues>({
-    defaultValues: { project_type: '', country: 'United States', job_photos: [] },
+    defaultValues: {
+      project_type: '', country: 'United States', job_photos: [],
+      concrete_sqft: 0, fence_linear_feet: 0,
+      concrete_thickness: '', concrete_psi: '', concrete_demo: '',
+      fence_height_material: '', gate_details: '',
+      optional_addons: '', notes: '',
+    },
   })
 
   const watchedValues = watch()
   const projectType = watchedValues.project_type
 
-  // Recalculate progress whenever form values change
   useEffect(() => {
     setProgress(calcProgress(watchedValues))
   }, [watchedValues])
 
+  /* ── Build project_details JSON ──────────────────────────── */
+  function buildProjectDetails(data: FormValues): Record<string, unknown> {
+    const details: Record<string, unknown> = { project_type: data.project_type }
+
+    if (data.project_type === 'Concrete') {
+      if (data.concrete_sqft)      details.concrete_sqft = data.concrete_sqft
+      if (data.concrete_thickness) details.concrete_thickness = data.concrete_thickness
+      if (data.concrete_psi)       details.concrete_psi = data.concrete_psi
+      if (data.concrete_demo)      details.concrete_demo = data.concrete_demo
+    }
+
+    if (data.project_type === 'Fencing') {
+      if (data.fence_linear_feet)    details.fence_linear_feet = data.fence_linear_feet
+      if (data.fence_height_material) details.fence_height_material = data.fence_height_material
+      if (data.gate_details)         details.gate_details = data.gate_details
+    }
+
+    if (data.optional_addons) details.optional_addons = data.optional_addons
+
+    return details
+  }
 
   /* ── Submit handler ─────────────────────────────────────── */
   const onSubmit = async (data: FormValues) => {
     setSubmitting(true)
     setSubmitError(null)
     try {
-      // Photos are already uploaded — just grab the URL array from RHF state
       const job_photos = data.job_photos ?? []
+      const project_details = buildProjectDetails(data)
 
       const payload: Record<string, unknown> = {
-        first_name:          data.first_name,
-        last_name:           data.last_name,
-        phone:               data.phone,
-        email:               data.email              || null,
-        address:             data.address            || null,
-        street_address:      data.street_address,
-        city:                data.city,
-        state:               data.state,
-        country:             data.country            || 'United States',
-        postal_code:         data.postal_code        || null,
-        project_type:        data.project_type,
-        demo_required:       data.demo_required      || null,
-        difficult_to_access: data.difficult_to_access || null,
-        haul_off_away:       data.haul_off_away      || null,
-        notes:               data.notes              || null,
+        first_name:     data.first_name,
+        last_name:      data.last_name,
+        phone:          data.phone,
+        email:          data.email          || null,
+        address:        data.address        || null,
+        street_address: data.street_address,
+        city:           data.city,
+        state:          data.state,
+        country:        data.country        || 'United States',
+        postal_code:    data.postal_code    || null,
+        project_type:   data.project_type,
+        project_details,
+        notes:          data.notes          || null,
         job_photos,
-      }
-
-      if (data.project_type === 'Concrete') {
-        Object.assign(payload, {
-          concrete_type:        data.concrete_type       || null,
-          concrete_total_sq_ft: data.concrete_total_sq_ft  ? Number(data.concrete_total_sq_ft)  : null,
-          concrete_psi:         data.concrete_psi         ? Number(data.concrete_psi)            : null,
-          number_of_steps:      data.number_of_steps      ? Number(data.number_of_steps)         : null,
-          step_width:           data.step_width            ? Number(data.step_width)              : null,
-          step_height:          data.step_height           ? Number(data.step_height)             : null,
-          step_tread_depth:     data.step_tread_depth      ? Number(data.step_tread_depth)        : null,
-          platform_size_sq_ft:  data.platform_size_sq_ft   ? Number(data.platform_size_sq_ft)    : null,
-        })
-      }
-
-      if (data.project_type === 'Deck') {
-        Object.assign(payload, {
-          deck_size_sq_ft:     data.deck_size_sq_ft     ? Number(data.deck_size_sq_ft) : null,
-          deck_height:         data.deck_height          || null,
-          deck_stairs_needed:  data.deck_stairs_needed   || null,
-          deck_railings_needed:data.deck_railings_needed || null,
-        })
-      }
-
-      if (data.project_type === 'Fence') {
-        Object.assign(payload, {
-          fence_length_linear_ft: data.fence_length_linear_ft ? Number(data.fence_length_linear_ft) : null,
-          fence_type:             data.fence_type              || null,
-          fence_height:           data.fence_height            ? Number(data.fence_height)           : null,
-          fence_gate_needed:      data.fence_gate_needed       || null,
-        })
       }
 
       const { error: dbError } = await supabase.from('walkthroughs').insert([payload])
@@ -247,11 +277,7 @@ export default function WalkthroughForm() {
               The job site data has been submitted successfully and saved to the system.
             </p>
           </div>
-          <button
-            onClick={() => setSuccess(false)}
-            className="btn-submit"
-            style={{ maxWidth: 300 }}
-          >
+          <button onClick={() => setSuccess(false)} className="btn-submit" style={{ maxWidth: 300 }}>
             <span>+ New Walkthrough</span>
           </button>
         </div>
@@ -276,117 +302,52 @@ export default function WalkthroughForm() {
 
           {/* ── 1. Contact Information ────────────────── */}
           <section className="form-card">
-            <SectionHeader
-              icon="👤"
-              color="blue"
-              title="Contact Information"
-              subtitle="Client details for this walkthrough"
-            />
+            <SectionHeader icon="👤" color="blue" title="Contact Information" subtitle="Client details for this walkthrough" />
             <div className="section-body">
               <div className="grid-2">
                 <Field label="First Name *" error={errors.first_name?.message}>
-                  <input
-                    className={`field-input${errors.first_name ? ' error' : ''}`}
-                    placeholder="Jane"
-                    autoComplete="given-name"
-                    {...register('first_name', { required: REQUIRED })}
-                  />
+                  <input className={`field-input${errors.first_name ? ' error' : ''}`} placeholder="Jane" autoComplete="given-name" {...register('first_name', { required: REQUIRED })} />
                 </Field>
                 <Field label="Last Name *" error={errors.last_name?.message}>
-                  <input
-                    className={`field-input${errors.last_name ? ' error' : ''}`}
-                    placeholder="Smith"
-                    autoComplete="family-name"
-                    {...register('last_name', { required: REQUIRED })}
-                  />
+                  <input className={`field-input${errors.last_name ? ' error' : ''}`} placeholder="Smith" autoComplete="family-name" {...register('last_name', { required: REQUIRED })} />
                 </Field>
               </div>
               <div className="grid-2">
                 <Field label="Phone *" error={errors.phone?.message}>
-                  <input
-                    className={`field-input${errors.phone ? ' error' : ''}`}
-                    placeholder="(555) 000-0000"
-                    type="tel"
-                    autoComplete="tel"
-                    inputMode="tel"
-                    {...register('phone', { required: REQUIRED })}
-                  />
+                  <input className={`field-input${errors.phone ? ' error' : ''}`} placeholder="(555) 000-0000" type="tel" autoComplete="tel" inputMode="tel" {...register('phone', { required: REQUIRED })} />
                 </Field>
                 <Field label="Email" error={errors.email?.message}>
-                  <input
-                    className="field-input"
-                    placeholder="jane@example.com"
-                    type="email"
-                    autoComplete="email"
-                    inputMode="email"
-                    {...register('email')}
-                  />
+                  <input className="field-input" placeholder="jane@example.com" type="email" autoComplete="email" inputMode="email" {...register('email')} />
                 </Field>
               </div>
-              <Field label="Address Line 1 (Apt, Suite…)" error={errors.address?.message}>
-                <input
-                  className="field-input"
-                  placeholder="Apt 4B, Suite 100, etc."
-                  autoComplete="address-line2"
-                  {...register('address')}
-                />
+              <Field label="Address Line 2 (Apt, Suite…)">
+                <input className="field-input" placeholder="Apt 4B, Suite 100, etc." autoComplete="address-line2" {...register('address')} />
               </Field>
               <Field label="Street Address *" error={errors.street_address?.message}>
-                <input
-                  className={`field-input${errors.street_address ? ' error' : ''}`}
-                  placeholder="123 Main St"
-                  autoComplete="street-address"
-                  {...register('street_address', { required: REQUIRED })}
-                />
+                <input className={`field-input${errors.street_address ? ' error' : ''}`} placeholder="123 Main St" autoComplete="street-address" {...register('street_address', { required: REQUIRED })} />
               </Field>
               <div className="grid-2">
                 <Field label="City *" error={errors.city?.message}>
-                  <input
-                    className={`field-input${errors.city ? ' error' : ''}`}
-                    placeholder="Dallas"
-                    autoComplete="address-level2"
-                    {...register('city', { required: REQUIRED })}
-                  />
+                  <input className={`field-input${errors.city ? ' error' : ''}`} placeholder="Dallas" autoComplete="address-level2" {...register('city', { required: REQUIRED })} />
                 </Field>
                 <Field label="State *" error={errors.state?.message}>
-                  <input
-                    className={`field-input${errors.state ? ' error' : ''}`}
-                    placeholder="TX"
-                    autoComplete="address-level1"
-                    {...register('state', { required: REQUIRED })}
-                  />
+                  <input className={`field-input${errors.state ? ' error' : ''}`} placeholder="TX" autoComplete="address-level1" {...register('state', { required: REQUIRED })} />
                 </Field>
               </div>
               <div className="grid-2">
-                <Field label="Country" error={errors.country?.message}>
-                  <input
-                    className="field-input"
-                    placeholder="United States"
-                    autoComplete="country-name"
-                    {...register('country')}
-                  />
+                <Field label="Country">
+                  <input className="field-input" placeholder="United States" autoComplete="country-name" {...register('country')} />
                 </Field>
-                <Field label="Postal Code" error={errors.postal_code?.message}>
-                  <input
-                    className="field-input"
-                    placeholder="75201"
-                    autoComplete="postal-code"
-                    inputMode="numeric"
-                    {...register('postal_code')}
-                  />
+                <Field label="Postal Code">
+                  <input className="field-input" placeholder="75201" autoComplete="postal-code" inputMode="numeric" {...register('postal_code')} />
                 </Field>
               </div>
             </div>
           </section>
 
-          {/* ── 2. Project Type ───────────────────────── */}
+          {/* ── 2. Project Type (pill-style cards) ──────── */}
           <section className="form-card">
-            <SectionHeader
-              icon="🏗️"
-              color="amber"
-              title="Project Type"
-              subtitle="Tap to select the type of work being quoted"
-            />
+            <SectionHeader icon="🏗️" color="amber" title="Project Type" subtitle="Tap to select the type of work being quoted" />
             <div className="section-body">
               <Controller
                 name="project_type"
@@ -394,50 +355,23 @@ export default function WalkthroughForm() {
                 rules={{ required: 'Please select a project type' }}
                 render={({ field }) => (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-                    {([
-                      { type: 'Concrete',   emoji: '🪨', label: 'Concrete'   },
-                      { type: 'Deck',       emoji: '🪵', label: 'Deck'       },
-                      { type: 'Fence',      emoji: '🔩', label: 'Fence'      },
-                      { type: 'Commercial', emoji: '🏢', label: 'Commercial' },
-                    ] as const).map(({ type, emoji, label }) => {
-                      const active = field.value === type
+                    {PROJECT_TYPES.map(({ value, emoji, label }) => {
+                      const active = field.value === value
                       return (
-                        <label
-                          key={type}
-                          style={{ position: 'relative', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}
-                        >
-                          <input
-                            type="radio"
-                            value={type}
-                            checked={active}
-                            onChange={() => field.onChange(type)}
-                            style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
-                          />
+                        <label key={value} style={{ position: 'relative', cursor: 'pointer', WebkitTapHighlightColor: 'transparent' }}>
+                          <input type="radio" value={value} checked={active} onChange={() => field.onChange(value)} style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }} />
                           <span style={{
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            gap: 7,
+                            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 7,
                             padding: '18px 10px',
-                            background: active
-                              ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)'
-                              : 'var(--bg-input)',
+                            background: active ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)' : 'var(--bg-input)',
                             border: active ? '2px solid #1d3aa4' : '2px solid var(--border)',
-                            borderRadius: 14,
-                            textAlign: 'center',
-                            minHeight: 90,
-                            userSelect: 'none',
+                            borderRadius: 14, textAlign: 'center', minHeight: 90, userSelect: 'none',
                             transition: 'all 0.18s cubic-bezier(0.16, 1, 0.3, 1)',
                             boxShadow: active ? '0 0 0 3px rgb(29 58 164 / 0.15)' : 'none',
                             transform: active ? 'scale(1.02)' : 'scale(1)',
                           }}>
                             <span style={{ fontSize: 28, lineHeight: 1 }}>{emoji}</span>
-                            <span style={{
-                              fontSize: 13,
-                              fontWeight: 700,
-                              color: active ? '#1d3aa4' : 'var(--text-secondary)',
-                            }}>{label}</span>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: active ? '#1d3aa4' : 'var(--text-secondary)' }}>{label}</span>
                           </span>
                         </label>
                       )
@@ -446,204 +380,154 @@ export default function WalkthroughForm() {
                 )}
               />
               {errors.project_type && (
-                <span className="field-error" style={{ marginTop: 8 }}>
-                  ⚠ {errors.project_type.message}
-                </span>
+                <span className="field-error" style={{ marginTop: 8 }}>⚠ {errors.project_type.message}</span>
               )}
             </div>
           </section>
 
-          {/* ── 3. Concrete Details (conditional) ────── */}
-          {projectType === 'Concrete' && (
-            <section className="form-card conditional-section">
-              <SectionHeader
-                icon="🪨"
-                color="slate"
-                title="Concrete Details"
-                subtitle="Specifications for the concrete work"
-              />
-              <div className="section-body">
-                <div className="grid-2">
-                  <Field label="Concrete Type">
-                    <select className="field-select" {...register('concrete_type')}>
-                      <option value="">Select type…</option>
-                      <option>Broom Finish</option>
-                      <option>Stamped</option>
-                      <option>Exposed Aggregate</option>
-                      <option>Smooth/Trowel</option>
-                      <option>Colored</option>
-                    </select>
+          {/* ── 3. CONDITIONAL SECTIONS ────────────────── */}
+          <AnimatePresence mode="wait">
+
+            {/* ── Concrete Details ──────────────────────── */}
+            {projectType === 'Concrete' && (
+              <motion.section key="concrete" className="form-card" variants={sectionVariants} initial="hidden" animate="visible" exit="exit" style={{ overflow: 'hidden' }}>
+                <SectionHeader icon="🪨" color="slate" title="Concrete Details" subtitle="Specifications for the concrete work" />
+                <div className="section-body">
+
+                  {/* Square Footage — Slider + Number */}
+                  <Field label="Total Square Feet">
+                    <Controller
+                      name="concrete_sqft"
+                      control={control}
+                      render={({ field }) => (
+                        <SliderNumberInput value={field.value} onChange={field.onChange} min={0} max={5000} step={25} unit="sq ft" />
+                      )}
+                    />
                   </Field>
-                  <Field label="Total Sq Ft">
-                    <input
-                      className="field-input"
-                      type="number"
-                      min="0"
-                      placeholder="e.g. 400"
-                      inputMode="numeric"
-                      {...register('concrete_total_sq_ft')}
+
+                  {/* Thickness — Pill Buttons */}
+                  <Field label="Thickness">
+                    <Controller
+                      name="concrete_thickness"
+                      control={control}
+                      render={({ field }) => (
+                        <div className="pill-group">
+                          {THICKNESS_OPTIONS.map((opt) => (
+                            <PillButton key={opt} label={opt} active={field.value === opt} onClick={() => field.onChange(opt)} />
+                          ))}
+                        </div>
+                      )}
+                    />
+                  </Field>
+
+                  {/* PSI — Pill Buttons */}
+                  <Field label="Concrete PSI">
+                    <Controller
+                      name="concrete_psi"
+                      control={control}
+                      render={({ field }) => (
+                        <div className="pill-group">
+                          {PSI_OPTIONS.map((opt) => (
+                            <PillButton key={opt} label={opt} active={field.value === opt} onClick={() => field.onChange(opt)} />
+                          ))}
+                        </div>
+                      )}
+                    />
+                  </Field>
+
+                  {/* Demo Type — Grid Cards */}
+                  <Field label="Demolition Type">
+                    <Controller
+                      name="concrete_demo"
+                      control={control}
+                      render={({ field }) => (
+                        <div className="grid-card-group">
+                          {DEMO_OPTIONS.map((opt) => (
+                            <GridCard
+                              key={opt.value}
+                              icon={opt.icon}
+                              title={opt.title}
+                              desc={opt.desc}
+                              active={field.value === opt.value}
+                              onClick={() => field.onChange(opt.value)}
+                            />
+                          ))}
+                        </div>
+                      )}
                     />
                   </Field>
                 </div>
-                <Field label="Concrete PSI">
-                  <input
-                    className="field-input"
-                    type="number"
-                    min="0"
-                    placeholder="e.g. 3000"
-                    inputMode="numeric"
-                    {...register('concrete_psi')}
-                  />
-                </Field>
+              </motion.section>
+            )}
 
-                {/* Steps sub-section */}
-                <div className="sub-section-divider">
-                  <p className="sub-section-label">Steps (if applicable)</p>
-                  <div className="grid-3">
-                    <Field label="# of Steps">
-                      <input className="field-input" type="number" min="0" placeholder="0" inputMode="numeric" {...register('number_of_steps')} />
-                    </Field>
-                    <Field label="Width (in)">
-                      <input className="field-input" type="number" min="0" placeholder="48" inputMode="numeric" {...register('step_width')} />
-                    </Field>
-                    <Field label="Height (in)">
-                      <input className="field-input" type="number" min="0" placeholder="7" inputMode="numeric" {...register('step_height')} />
-                    </Field>
-                  </div>
-                  <div className="grid-2" style={{ marginTop: 12 }}>
-                    <Field label="Tread Depth (in)">
-                      <input className="field-input" type="number" min="0" placeholder="11" inputMode="numeric" {...register('step_tread_depth')} />
-                    </Field>
-                    <Field label="Platform Size (sq ft)">
-                      <input className="field-input" type="number" min="0" placeholder="16" inputMode="numeric" {...register('platform_size_sq_ft')} />
-                    </Field>
-                  </div>
-                </div>
-              </div>
-            </section>
-          )}
+            {/* ── Fencing Details ───────────────────────── */}
+            {projectType === 'Fencing' && (
+              <motion.section key="fencing" className="form-card" variants={sectionVariants} initial="hidden" animate="visible" exit="exit" style={{ overflow: 'hidden' }}>
+                <SectionHeader icon="🔩" color="rose" title="Fencing Details" subtitle="Specifications for the fence installation" />
+                <div className="section-body">
 
-          {/* ── 4. Deck Details (conditional) ────────── */}
-          {projectType === 'Deck' && (
-            <section className="form-card conditional-section">
-              <SectionHeader
-                icon="🪵"
-                color="green"
-                title="Deck Details"
-                subtitle="Specifications for the deck build"
-              />
-              <div className="section-body">
-                <Field label="Deck Size (sq ft)">
-                  <input
-                    className="field-input"
-                    type="number"
-                    min="0"
-                    placeholder="e.g. 300"
-                    inputMode="numeric"
-                    {...register('deck_size_sq_ft')}
-                  />
-                </Field>
-                <Field label="Deck Height">
-                  <select className="field-select" {...register('deck_height')}>
-                    <option value="">Select height…</option>
-                    <option>Ground Level (0-2ft)</option>
-                    <option>Elevated (2-6ft)</option>
-                    <option>Second Story (6ft+)</option>
-                  </select>
-                </Field>
-                <div className="grid-2">
-                  <Field label="Stairs Needed?">
-                    <select className="field-select" {...register('deck_stairs_needed')}>
-                      <option value="">Select…</option>
-                      <option>Yes</option>
-                      <option>No</option>
-                    </select>
+                  {/* Linear Feet — Slider + Number */}
+                  <Field label="Total Linear Feet">
+                    <Controller
+                      name="fence_linear_feet"
+                      control={control}
+                      render={({ field }) => (
+                        <SliderNumberInput value={field.value} onChange={field.onChange} min={0} max={1000} step={5} unit="linear ft" />
+                      )}
+                    />
                   </Field>
-                  <Field label="Railings Needed?">
-                    <select className="field-select" {...register('deck_railings_needed')}>
-                      <option value="">Select…</option>
-                      <option>Yes - Wood</option>
-                      <option>Yes - Vinyl</option>
-                      <option>Yes - Composite</option>
-                      <option>Yes - Metal/Aluminum</option>
-                      <option>No</option>
-                    </select>
+
+                  {/* Height & Material */}
+                  <Field label="Height & Material">
+                    <input className="field-input" placeholder="e.g. 6ft Cedar Privacy, 4ft Chain Link…" {...register('fence_height_material')} />
+                  </Field>
+
+                  {/* Gate Details */}
+                  <Field label="Gate Details">
+                    <input className="field-input" placeholder="e.g. Single walk gate, Double drive gate…" {...register('gate_details')} />
                   </Field>
                 </div>
-              </div>
-            </section>
-          )}
+              </motion.section>
+            )}
 
-          {/* ── 5. Fence Details (conditional) ───────── */}
-          {projectType === 'Fence' && (
-            <section className="form-card conditional-section">
-              <SectionHeader
-                icon="🔩"
-                color="rose"
-                title="Fence Details"
-                subtitle="Specifications for the fence installation"
-              />
-              <div className="section-body">
-                <div className="grid-2">
-                  <Field label="Length (linear ft)">
-                    <input className="field-input" type="number" min="0" placeholder="e.g. 150" inputMode="numeric" {...register('fence_length_linear_ft')} />
-                  </Field>
-                  <Field label="Fence Height (ft)">
-                    <input className="field-input" type="number" min="0" placeholder="e.g. 6" inputMode="numeric" {...register('fence_height')} />
-                  </Field>
+            {/* ── Decking Details ───────────────────────── */}
+            {projectType === 'Decking' && (
+              <motion.section key="decking" className="form-card" variants={sectionVariants} initial="hidden" animate="visible" exit="exit" style={{ overflow: 'hidden' }}>
+                <SectionHeader icon="🪵" color="green" title="Decking Details" subtitle="Describe the deck build requirements" />
+                <div className="section-body">
+                  <p style={{ margin: 0, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                    Please include all deck specifications, dimensions, materials, and any special requirements in the <strong>Notes</strong> section below.
+                  </p>
                 </div>
-                <Field label="Fence Type">
-                  <input
-                    className="field-input"
-                    placeholder="e.g. Wood Privacy, Chain Link, Vinyl…"
-                    {...register('fence_type')}
-                  />
-                </Field>
-                <Field label="Gate Needed?">
-                  <select className="field-select" {...register('fence_gate_needed')}>
-                    <option value="">Select…</option>
-                    <option>Single Gate</option>
-                    <option>Double Gate</option>
-                    <option>Driveway Gate</option>
-                    <option>None</option>
-                  </select>
-                </Field>
-              </div>
-            </section>
-          )}
+              </motion.section>
+            )}
 
-          {/* ── 6. Logistics ──────────────────────────── */}
+            {/* ── Other Details ─────────────────────────── */}
+            {projectType === 'Other' && (
+              <motion.section key="other" className="form-card" variants={sectionVariants} initial="hidden" animate="visible" exit="exit" style={{ overflow: 'hidden' }}>
+                <SectionHeader icon="📋" color="violet" title="Other Project" subtitle="Describe the project requirements" />
+                <div className="section-body">
+                  <p style={{ margin: 0, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                    Please provide all project details, specifications, and requirements in the <strong>Notes</strong> and <strong>Add-Ons</strong> sections below.
+                  </p>
+                </div>
+              </motion.section>
+            )}
+
+          </AnimatePresence>
+
+          {/* ── 4. Add-Ons & Notes (All Types) ─────────── */}
           <section className="form-card">
-            <SectionHeader
-              icon="📋"
-              color="violet"
-              title="Logistics"
-              subtitle="Site access and demolition requirements"
-            />
+            <SectionHeader icon="💡" color="emerald" title="Add-Ons & Notes" subtitle="Upsell opportunities and additional context" />
             <div className="section-body">
-              <div className="grid-3">
-                <Field label="Demo Required?">
-                  <select className="field-select" {...register('demo_required')}>
-                    <option value="">Select…</option>
-                    <option>Yes</option>
-                    <option>No</option>
-                  </select>
-                </Field>
-                <Field label="Difficult Access?">
-                  <select className="field-select" {...register('difficult_to_access')}>
-                    <option value="">Select…</option>
-                    <option>Yes</option>
-                    <option>No</option>
-                  </select>
-                </Field>
-                <Field label="Haul Off/Away?">
-                  <select className="field-select" {...register('haul_off_away')}>
-                    <option value="">Select…</option>
-                    <option>Yes</option>
-                    <option>No</option>
-                  </select>
-                </Field>
-              </div>
+              <Field label="Optional Add-Ons / Upsells">
+                <textarea
+                  className="field-textarea"
+                  placeholder="e.g. Sealing, staining, decorative borders, lighting, post caps…"
+                  rows={3}
+                  {...register('optional_addons')}
+                />
+              </Field>
               <Field label="Notes">
                 <textarea
                   className="field-textarea"
@@ -655,23 +539,15 @@ export default function WalkthroughForm() {
             </div>
           </section>
 
-          {/* ── 7. Job Site Photos ────────────────────── */}
+          {/* ── 5. Job Site Photos ────────────────────── */}
           <section className="form-card">
-            <SectionHeader
-              icon="📸"
-              color="cyan"
-              title="Job Site Photos"
-              subtitle="Tap the button to open your camera and capture site photos"
-            />
+            <SectionHeader icon="📸" color="cyan" title="Job Site Photos" subtitle="Tap the button to open your camera and capture site photos" />
             <div className="section-body" style={{ paddingBottom: 18 }}>
               <Controller
                 name="job_photos"
                 control={control}
                 render={({ field }) => (
-                  <PhotoUpload
-                    urls={field.value ?? []}
-                    onChange={field.onChange}
-                  />
+                  <PhotoUpload urls={field.value ?? []} onChange={field.onChange} />
                 )}
               />
             </div>
@@ -682,9 +558,7 @@ export default function WalkthroughForm() {
             <div className="error-banner">
               <span style={{ fontSize: 18, flexShrink: 0 }}>❌</span>
               <div>
-                <p style={{ margin: '0 0 2px', fontWeight: 700, color: '#991b1b', fontSize: 14 }}>
-                  Submission Failed
-                </p>
+                <p style={{ margin: '0 0 2px', fontWeight: 700, color: '#991b1b', fontSize: 14 }}>Submission Failed</p>
                 <p style={{ margin: 0, color: '#b91c1c', fontSize: 13 }}>{submitError}</p>
               </div>
             </div>
@@ -692,7 +566,7 @@ export default function WalkthroughForm() {
 
         </div>{/* end .form-body */}
 
-        {/* ── Sticky Submit Bar (outside scroll, inside form) */}
+        {/* ── Sticky Submit Bar ─────────────────────────── */}
         <div className="sticky-submit-bar">
           <button type="submit" className="btn-submit" disabled={submitting}>
             {submitting ? (
