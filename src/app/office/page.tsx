@@ -32,6 +32,9 @@ import {
   Hammer,
   Shield,
   Trash2,
+  CheckCircle,
+  ExternalLink,
+  AlertCircle,
 } from 'lucide-react'
 import './office.css'
 
@@ -507,7 +510,7 @@ export default function OfficePage() {
         </main>
 
         {/* ═══════════ RIGHT PANEL — PRICING ENGINE ═══════════ */}
-        <PricingEngine />
+        <PricingEngine selected={selected} />
       </div>
 
       {/* ── Lightbox Modal ───────────────────────────────── */}
@@ -544,8 +547,21 @@ export default function OfficePage() {
 /* ═══════════════════════════════════════════════════════════ */
 /*  PRICING ENGINE — isolated component                        */
 /* ═══════════════════════════════════════════════════════════ */
-function PricingEngine() {
-  const { register, control, handleSubmit } = useForm<PricingFormValues>({
+interface PricingEngineProps {
+  selected: Walkthrough | null
+}
+
+interface Toast {
+  type: 'success' | 'error'
+  proposalId?: string
+  message: string
+}
+
+function PricingEngine({ selected }: PricingEngineProps) {
+  const [submitting, setSubmitting] = useState(false)
+  const [toast, setToast] = useState<Toast | null>(null)
+
+  const { register, control, handleSubmit, reset } = useForm<PricingFormValues>({
     defaultValues: { line_items: [] },
   })
 
@@ -569,10 +585,50 @@ function PricingEngine() {
     return n.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
   }
 
-  function onSubmit(data: PricingFormValues) {
-    console.log('📋 Proposal Submitted')
-    console.log('Line Items:', data.line_items)
-    console.log('Grand Total:', fmt(grandTotal))
+  /* Dismiss toast after 12 seconds */
+  useEffect(() => {
+    if (!toast) return
+    const t = setTimeout(() => setToast(null), 12000)
+    return () => clearTimeout(t)
+  }, [toast])
+
+  async function onSubmit(data: PricingFormValues) {
+    if (!selected) {
+      setToast({ type: 'error', message: 'Please select a walkthrough from the inbox first.' })
+      return
+    }
+    if (data.line_items.length === 0) {
+      setToast({ type: 'error', message: 'Add at least one line item before generating a proposal.' })
+      return
+    }
+
+    setSubmitting(true)
+    try {
+      const { data: inserted, error } = await supabase
+        .from('proposals')
+        .insert({
+          walkthrough_id: selected.id,
+          line_items: data.line_items,
+          grand_total: grandTotal,
+          status: 'pending',
+        })
+        .select('id')
+        .single()
+
+      if (error) throw error
+
+      reset({ line_items: [] })
+      setToast({
+        type: 'success',
+        proposalId: inserted.id,
+        message: `Proposal created for ${selected.first_name} ${selected.last_name}!`,
+      })
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Unknown error occurred'
+      setToast({ type: 'error', message: `Failed to create proposal: ${message}` })
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   return (
@@ -586,6 +642,55 @@ function PricingEngine() {
           <span className="panel-badge">{fields.length} item{fields.length !== 1 ? 's' : ''}</span>
         )}
       </div>
+
+      {/* ── Toast Notification ─────────────────────── */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            className={`pe-toast pe-toast-${toast.type}`}
+            initial={{ opacity: 0, y: -12, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -12, scale: 0.97 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <div className="pe-toast-icon">
+              {toast.type === 'success'
+                ? <CheckCircle size={18} />
+                : <AlertCircle size={18} />}
+            </div>
+            <div className="pe-toast-body">
+              <p className="pe-toast-msg">{toast.message}</p>
+              {toast.proposalId && (
+                <a
+                  href={`/proposal/${toast.proposalId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="pe-toast-link"
+                >
+                  <ExternalLink size={13} />
+                  View Proposal / Send to Client
+                </a>
+              )}
+            </div>
+            <button className="pe-toast-close" onClick={() => setToast(null)}>
+              <X size={14} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Walkthrough context chip ────────────────── */}
+      {selected ? (
+        <div className="pe-context-chip">
+          <User size={13} />
+          <span>{selected.first_name} {selected.last_name} · {selected.street_address}</span>
+        </div>
+      ) : (
+        <div className="pe-context-chip pe-context-chip-empty">
+          <Eye size={13} />
+          <span>Select a walkthrough from the inbox</span>
+        </div>
+      )}
 
       <form
         onSubmit={handleSubmit(onSubmit)}
@@ -735,15 +840,28 @@ function PricingEngine() {
 
         {/* ── Generate Button ─────────────────────── */}
         <div className="pricing-action-wrap">
-          <button type="submit" className="pricing-generate-btn">
+          <button
+            type="submit"
+            className="pricing-generate-btn"
+            disabled={submitting}
+          >
             <div className="pricing-btn-glow" />
             <span className="pricing-btn-content">
-              <FileText size={20} />
-              <span>
-                Generate Contract<br />
-                <small>&amp; Payment Link</small>
-              </span>
-              <ArrowRight size={18} />
+              {submitting ? (
+                <>
+                  <div className="office-spinner" style={{ width: 20, height: 20, borderWidth: 2 }} />
+                  <span>Creating Proposal…</span>
+                </>
+              ) : (
+                <>
+                  <FileText size={20} />
+                  <span>
+                    Generate Contract<br />
+                    <small>&amp; Payment Link</small>
+                  </span>
+                  <ArrowRight size={18} />
+                </>
+              )}
             </span>
           </button>
         </div>

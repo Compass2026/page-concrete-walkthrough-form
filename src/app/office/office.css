@@ -1160,3 +1160,111 @@
   .panel-left { max-height: 40vh; }
   .panel-right { max-height: 50vh; }
 }
+
+/* ─── Pricing Engine Toast ────────────────────────────────── */
+.pe-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 12px 16px 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  position: relative;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  flex-shrink: 0;
+}
+
+.pe-toast-success {
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  color: #166534;
+}
+
+.pe-toast-error {
+  background: #fef2f2;
+  border: 1.5px solid #fca5a5;
+  color: #991b1b;
+}
+
+.pe-toast-icon { flex-shrink: 0; margin-top: 1px; }
+
+.pe-toast-body { flex: 1; min-width: 0; }
+
+.pe-toast-msg {
+  margin: 0 0 6px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.pe-toast-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #1d4ed8;
+  text-decoration: none;
+  background: #dbeafe;
+  padding: 4px 10px;
+  border-radius: 7px;
+  border: 1px solid #93c5fd;
+  transition: all 0.15s;
+}
+
+.pe-toast-link:hover {
+  background: #bfdbfe;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(29,58,164,0.15);
+}
+
+.pe-toast-close {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.5;
+  transition: opacity 0.15s, background 0.15s;
+  font-family: inherit;
+  color: inherit;
+}
+.pe-toast-close:hover { opacity: 1; background: rgba(0,0,0,0.06); }
+
+/* ─── Walkthrough Context Chip ────────────────────────────── */
+.pe-context-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 10px 16px 0;
+  padding: 8px 12px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 9px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #1e40af;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pe-context-chip-empty {
+  background: #f8f9fb;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+}
+
+/* ─── Disabled generate button ────────────────────────────── */
+.pricing-generate-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
