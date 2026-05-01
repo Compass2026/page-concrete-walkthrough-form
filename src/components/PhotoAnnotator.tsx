@@ -37,7 +37,11 @@ export default function PhotoAnnotator({ photoUrl, onSave, onCancel }: PhotoAnno
   }, [])
 
   /* ── Load the photo onto the canvas ── */
+  // `mounted` is intentionally in the dep array: the canvas doesn't exist in
+  // the portal until after setMounted(true) triggers a re-render, so we must
+  // retry once mounted flips to true.
   useEffect(() => {
+    if (!mounted) return
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext('2d')
@@ -74,7 +78,7 @@ export default function PhotoAnnotator({ photoUrl, onSave, onCancel }: PhotoAnno
       img2.src = photoUrl
     }
     img.src = photoUrl
-  }, [photoUrl])
+  }, [photoUrl, mounted])
 
   /* ── Get canvas-space coordinates from a pointer/touch event ── */
   const getPos = useCallback(
