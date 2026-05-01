@@ -30,7 +30,7 @@ const PROJECT_TYPES = [
 type ProjectType = 'Concrete' | 'Deck' | 'Fence' | 'Commercial' | ''
 
 /* ─── Assigned Owners ─────────────────────────────────────────── */
-const OWNERS = ['Tommy Page', 'Ryan Page', 'Office Staff', 'Unassigned']
+const OWNERS = ['Ann Marie Page', 'Derek Page', 'Drew Valles', 'Unassigned']
 
 /* ─── Form Values ─────────────────────────────────────────────── */
 interface IntakeFormValues {
