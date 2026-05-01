@@ -9,6 +9,11 @@ export interface LineItem {
   quantity: number
 }
 
+export interface AnnotatedPhoto {
+  url: string
+  annotation_notes: string
+}
+
 export interface ProposalData {
   id: string
   created_at: string
@@ -31,7 +36,10 @@ export interface WalkthroughData {
   project_type: string
   project_details: Record<string, unknown> | null
   notes: string | null
-  job_photos: string[]
+  /** Legacy plain-URL photos (pre-annotation feature) */
+  job_photos: string[] | null
+  /** New annotated photo objects with markup + notes */
+  annotated_photos: AnnotatedPhoto[] | null
 }
 
 /* ── Data Fetching (Server Component) ───────────────────────── */

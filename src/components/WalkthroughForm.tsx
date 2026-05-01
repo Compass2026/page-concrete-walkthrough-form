@@ -1,9 +1,10 @@
 'use client'
 import { useForm, Controller } from 'react-hook-form'
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import PhotoUpload from './PhotoUpload'
+import type { AnnotatedPhoto } from './PhotoAnnotator'
 
 /* ── Constant choice arrays ────────────────────────────────── */
 const PROJECT_TYPES = [
@@ -51,15 +52,15 @@ interface FormValues {
   // All types
   optional_addons: string
   notes: string
-  job_photos: string[]
+  annotated_photos: AnnotatedPhoto[]
 }
 
 const REQUIRED = 'Required'
 
 /* ── Framer motion variants ────────────────────────────────── */
-const sectionVariants = {
+const sectionVariants: Variants = {
   hidden:  { opacity: 0, height: 0, y: -12, scale: 0.98 },
-  visible: { opacity: 1, height: 'auto', y: 0, scale: 1, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
+  visible: { opacity: 1, height: 'auto', y: 0, scale: 1, transition: { duration: 0.4, ease: 'easeOut' } },
   exit:    { opacity: 0, height: 0, y: -8, scale: 0.98, transition: { duration: 0.25, ease: 'easeInOut' } },
 }
 
@@ -168,7 +169,7 @@ function calcProgress(values: Partial<FormValues>): number {
     if (values.notes) sectionFilled++
   }
 
-  const photoBonus = (values.job_photos?.length ?? 0) > 0 ? 1 : 0
+  const photoBonus = (values.annotated_photos?.length ?? 0) > 0 ? 1 : 0
   const total = alwaysTotal + sectionTotal + 1
   const filled = alwaysFilled + sectionFilled + photoBonus
   return Math.min(100, Math.round((filled / total) * 100))
@@ -188,7 +189,7 @@ export default function WalkthroughForm() {
     formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
-      project_type: '', country: 'United States', job_photos: [],
+      project_type: '', country: 'United States', annotated_photos: [],
       concrete_sqft: 0, fence_linear_feet: 0,
       concrete_thickness: '', concrete_psi: '', concrete_demo: '',
       fence_height_material: '', gate_details: '',
@@ -230,24 +231,27 @@ export default function WalkthroughForm() {
     setSubmitting(true)
     setSubmitError(null)
     try {
-      const job_photos = data.job_photos ?? []
+      const annotated_photos = (data.annotated_photos ?? []).map((p) => ({
+        url: p.url,
+        annotation_notes: p.annotation_notes,
+      }))
       const project_details = buildProjectDetails(data)
 
       const payload: Record<string, unknown> = {
-        first_name:     data.first_name,
-        last_name:      data.last_name,
-        phone:          data.phone,
-        email:          data.email          || null,
-        address:        data.address        || null,
-        street_address: data.street_address,
-        city:           data.city,
-        state:          data.state,
-        country:        data.country        || 'United States',
-        postal_code:    data.postal_code    || null,
-        project_type:   data.project_type,
+        first_name:       data.first_name,
+        last_name:        data.last_name,
+        phone:            data.phone,
+        email:            data.email            || null,
+        address:          data.address          || null,
+        street_address:   data.street_address,
+        city:             data.city,
+        state:            data.state,
+        country:          data.country          || 'United States',
+        postal_code:      data.postal_code      || null,
+        project_type:     data.project_type,
         project_details,
-        notes:          data.notes          || null,
-        job_photos,
+        notes:            data.notes            || null,
+        annotated_photos,
       }
 
       const { error: dbError } = await supabase.from('walkthroughs').insert([payload])
@@ -539,15 +543,15 @@ export default function WalkthroughForm() {
             </div>
           </section>
 
-          {/* ── 5. Job Site Photos ────────────────────── */}
+          {/* ── 5. Job Site Photos + Annotation ──────── */}
           <section className="form-card">
-            <SectionHeader icon="📸" color="cyan" title="Job Site Photos" subtitle="Tap the button to open your camera and capture site photos" />
+            <SectionHeader icon="📸" color="cyan" title="Job Site Photos" subtitle="Capture photos · Blue marker annotation step follows automatically" />
             <div className="section-body" style={{ paddingBottom: 18 }}>
               <Controller
-                name="job_photos"
+                name="annotated_photos"
                 control={control}
                 render={({ field }) => (
-                  <PhotoUpload urls={field.value ?? []} onChange={field.onChange} />
+                  <PhotoUpload photos={field.value ?? []} onChange={field.onChange} />
                 )}
               />
             </div>

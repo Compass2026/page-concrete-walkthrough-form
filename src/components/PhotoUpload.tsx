@@ -2,28 +2,32 @@
 import { useRef, useState } from 'react'
 import imageCompression from 'browser-image-compression'
 import { supabase } from '@/lib/supabase'
+import PhotoAnnotator, { AnnotatedPhoto } from './PhotoAnnotator'
 
 interface PhotoUploadProps {
-  /** Array of already-uploaded public URLs stored in RHF state */
-  urls: string[]
-  /** Called with the full updated URLs array after each add or remove */
-  onChange: (urls: string[]) => void
+  /** Array of already-annotated photo objects stored in RHF state */
+  photos: AnnotatedPhoto[]
+  /** Called with the full updated photos array after each add or remove */
+  onChange: (photos: AnnotatedPhoto[]) => void
 }
 
-export default function PhotoUpload({ urls, onChange }: PhotoUploadProps) {
+export default function PhotoUpload({ photos, onChange }: PhotoUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
 
-  const MAX_PHOTOS = 20
-  const atMax = urls.length >= MAX_PHOTOS
+  // URL of the just-uploaded (un-annotated) photo, triggers the annotator modal
+  const [pendingUrl, setPendingUrl] = useState<string | null>(null)
 
-  /* ── Triggered the instant the user confirms a captured photo ── */
+  const MAX_PHOTOS = 20
+  const atMax = photos.length >= MAX_PHOTOS
+
+  /* ── Step 1: User picks/captures a photo → compress → upload to storage ── */
   async function handleCapture(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Reset the input so the same file can be re-selected if needed
+    // Reset so the same file can be re-selected
     e.target.value = ''
 
     if (atMax) return
@@ -32,16 +36,15 @@ export default function PhotoUpload({ urls, onChange }: PhotoUploadProps) {
     setUploadError(null)
 
     try {
-      // ── Compress image before upload to avoid cellular-network timeouts ──
+      // Compress before upload to avoid cellular-network timeouts
       const compressedFile = await imageCompression(file, {
-        maxSizeMB: 0.8,           // Target ≤ 800 KB
-        maxWidthOrHeight: 1920,   // Keep resolution reasonable
-        useWebWorker: true,       // Non-blocking compression
-        fileType: 'image/jpeg',   // Normalize to JPEG for best size
+        maxSizeMB: 0.8,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        fileType: 'image/jpeg',
       })
 
-      const ext = 'jpg' // Always JPEG after compression
-      const path = `walkthroughs/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+      const path = `walkthroughs/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
 
       const { error: uploadErr } = await supabase.storage
         .from('job-photos')
@@ -50,7 +53,9 @@ export default function PhotoUpload({ urls, onChange }: PhotoUploadProps) {
       if (uploadErr) throw new Error(uploadErr.message)
 
       const { data } = supabase.storage.from('job-photos').getPublicUrl(path)
-      onChange([...urls, data.publicUrl])
+
+      // Step 2: open annotator on the freshly-uploaded image
+      setPendingUrl(data.publicUrl)
     } catch (err: unknown) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed. Please try again.')
     } finally {
@@ -58,13 +63,67 @@ export default function PhotoUpload({ urls, onChange }: PhotoUploadProps) {
     }
   }
 
+  /* ── Step 2: Annotator saves → compress annotated canvas → upload annotated file ── */
+  async function handleAnnotationSave(annotatedFile: File, notes: string) {
+    if (!pendingUrl) return
+    setPendingUrl(null) // close modal immediately
+
+    setUploading(true)
+    setUploadError(null)
+
+    try {
+      // Compress annotated image as well
+      const compressed = await imageCompression(annotatedFile, {
+        maxSizeMB: 0.9,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+        fileType: 'image/jpeg',
+      })
+
+      const path = `walkthroughs/annotated-${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`
+
+      const { error: uploadErr } = await supabase.storage
+        .from('job-photos')
+        .upload(path, compressed, { upsert: false, contentType: 'image/jpeg' })
+
+      if (uploadErr) throw new Error(uploadErr.message)
+
+      const { data } = supabase.storage.from('job-photos').getPublicUrl(path)
+
+      const newPhoto: AnnotatedPhoto = {
+        url: data.publicUrl,
+        annotation_notes: notes,
+      }
+
+      onChange([...photos, newPhoto])
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : 'Annotated upload failed. Please try again.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  /* ── Cancel annotation (discard un-annotated photo) ── */
+  function handleAnnotationCancel() {
+    setPendingUrl(null)
+  }
+
   /* ── Remove a specific photo by index ── */
   function remove(idx: number) {
-    onChange(urls.filter((_, i) => i !== idx))
+    onChange(photos.filter((_, i) => i !== idx))
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+      {/* ── Annotation Modal (portal-like, fixed overlay) ── */}
+      {pendingUrl && (
+        <PhotoAnnotator
+          photoUrl={pendingUrl}
+          onSave={handleAnnotationSave}
+          onCancel={handleAnnotationCancel}
+        />
+      )}
 
       {/* ── Hidden camera input ── */}
       <input
@@ -92,8 +151,6 @@ export default function PhotoUpload({ urls, onChange }: PhotoUploadProps) {
           border: atMax ? '2px dashed var(--border)' : '2px dashed #2563eb',
           background: atMax
             ? 'var(--bg-input)'
-            : uploading
-            ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)'
             : 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
           cursor: atMax ? 'not-allowed' : uploading ? 'wait' : 'pointer',
           opacity: atMax ? 0.55 : 1,
@@ -105,7 +162,6 @@ export default function PhotoUpload({ urls, onChange }: PhotoUploadProps) {
       >
         {uploading ? (
           <>
-            {/* ── Spinner ── */}
             <span
               style={{
                 display: 'inline-block',
@@ -119,7 +175,7 @@ export default function PhotoUpload({ urls, onChange }: PhotoUploadProps) {
               }}
             />
             <span style={{ fontSize: 15, fontWeight: 700, color: '#1d4ed8' }}>
-              Uploading…
+              Processing…
             </span>
           </>
         ) : atMax ? (
@@ -137,9 +193,9 @@ export default function PhotoUpload({ urls, onChange }: PhotoUploadProps) {
                 Add Photo
               </p>
               <p style={{ margin: 0, fontSize: 12, color: '#3b82f6', fontWeight: 500 }}>
-                {urls.length > 0
-                  ? `${urls.length} / ${MAX_PHOTOS} captured — tap to add more`
-                  : 'Tap to open camera'}
+                {photos.length > 0
+                  ? `${photos.length} / ${MAX_PHOTOS} captured — tap to add more`
+                  : 'Tap to open camera · Annotation step will follow'}
               </p>
             </div>
           </>
@@ -167,7 +223,7 @@ export default function PhotoUpload({ urls, onChange }: PhotoUploadProps) {
       )}
 
       {/* ── Thumbnail grid ── */}
-      {urls.length > 0 && (
+      {photos.length > 0 && (
         <div>
           <p
             style={{
@@ -179,69 +235,128 @@ export default function PhotoUpload({ urls, onChange }: PhotoUploadProps) {
               margin: '0 0 10px',
             }}
           >
-            {urls.length} / {MAX_PHOTOS} uploaded
+            {photos.length} / {MAX_PHOTOS} uploaded
           </p>
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 10,
+              gridTemplateColumns: 'repeat(2, 1fr)',
+              gap: 12,
             }}
           >
-            {urls.map((src, i) => (
+            {photos.map((photo, i) => (
               <div
-                key={src}
+                key={`${photo.url}-${i}`}
                 style={{
-                  position: 'relative',
-                  aspectRatio: '1 / 1',
                   borderRadius: 12,
                   overflow: 'hidden',
                   background: '#f1f5f9',
                   boxShadow: '0 2px 8px rgb(0 0 0 / 0.10)',
                   border: '2px solid #e2e8f0',
+                  display: 'flex',
+                  flexDirection: 'column',
                 }}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={src}
-                  alt={`Site photo ${i + 1}`}
+                {/* Thumbnail image */}
+                <div style={{ position: 'relative', aspectRatio: '4 / 3' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={photo.url}
+                    alt={`Annotated site photo ${i + 1}`}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      display: 'block',
+                    }}
+                  />
+                  {/* Annotated badge */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: 5,
+                      left: 5,
+                      padding: '2px 8px',
+                      borderRadius: 6,
+                      background: 'rgba(29,78,216,0.85)',
+                      backdropFilter: 'blur(4px)',
+                      color: '#fff',
+                      fontSize: 10,
+                      fontWeight: 800,
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    ✏️ ANNOTATED
+                  </div>
+                  {/* Delete button */}
+                  <button
+                    type="button"
+                    onClick={() => remove(i)}
+                    aria-label={`Remove photo ${i + 1}`}
+                    style={{
+                      position: 'absolute',
+                      top: 5,
+                      right: 5,
+                      width: 26,
+                      height: 26,
+                      borderRadius: '50%',
+                      background: 'rgba(15, 23, 42, 0.75)',
+                      backdropFilter: 'blur(4px)',
+                      border: 'none',
+                      color: '#fff',
+                      fontSize: 15,
+                      fontWeight: 700,
+                      lineHeight: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      WebkitTapHighlightColor: 'transparent',
+                      padding: 0,
+                      transition: 'background 0.15s',
+                    }}
+                  >
+                    ×
+                  </button>
+                </div>
+
+                {/* Notes preview */}
+                <div
                   style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                    display: 'block',
-                  }}
-                />
-                {/* ── Delete button ── */}
-                <button
-                  type="button"
-                  onClick={() => remove(i)}
-                  aria-label={`Remove photo ${i + 1}`}
-                  style={{
-                    position: 'absolute',
-                    top: 5,
-                    right: 5,
-                    width: 24,
-                    height: 24,
-                    borderRadius: '50%',
-                    background: 'rgba(15, 23, 42, 0.75)',
-                    backdropFilter: 'blur(4px)',
-                    border: 'none',
-                    color: '#fff',
-                    fontSize: 14,
-                    fontWeight: 700,
-                    lineHeight: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    WebkitTapHighlightColor: 'transparent',
-                    padding: 0,
-                    transition: 'background 0.15s',
+                    padding: '8px 10px',
+                    background: '#f8fafc',
+                    borderTop: '1px solid #e2e8f0',
                   }}
                 >
-                  ×
-                </button>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      color: '#1d4ed8',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      marginBottom: 3,
+                    }}
+                  >
+                    Notes
+                  </p>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 12,
+                      color: '#334155',
+                      lineHeight: 1.5,
+                      // Clamp to 2 lines
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}
+                  >
+                    {photo.annotation_notes}
+                  </p>
+                </div>
               </div>
             ))}
           </div>
