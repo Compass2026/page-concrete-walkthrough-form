@@ -1,6 +1,7 @@
 'use client'
 import { useForm, Controller } from 'react-hook-form'
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence, type Variants } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
 import PhotoUpload from './PhotoUpload'
@@ -179,13 +180,17 @@ function calcProgress(values: Partial<FormValues>): number {
 /*  Main Form Component                                        */
 /* ═══════════════════════════════════════════════════════════ */
 export default function WalkthroughForm() {
+  const searchParams = useSearchParams()
+  const recordId = searchParams.get('id')
+
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
+  const [initialLoading, setInitialLoading] = useState(!!recordId)
 
   const {
-    register, handleSubmit, watch, control, reset, setValue,
+    register, handleSubmit, watch, control, reset,
     formState: { errors },
   } = useForm<FormValues>({
     defaultValues: {
@@ -199,6 +204,44 @@ export default function WalkthroughForm() {
 
   const watchedValues = watch()
   const projectType = watchedValues.project_type
+
+  /* ── Pre-fill form when coming from Tech Inbox ──────────── */
+  useEffect(() => {
+    if (!recordId) return
+    ;(async () => {
+      const { data, error } = await supabase
+        .from('walkthroughs')
+        .select(
+          'first_name, last_name, phone, email, address, street_address, city, state, country, postal_code, project_type'
+        )
+        .eq('id', recordId)
+        .single()
+
+      if (!error && data) {
+        reset({
+          first_name:           data.first_name        ?? '',
+          last_name:            data.last_name         ?? '',
+          phone:                data.phone             ?? '',
+          email:                data.email             ?? '',
+          address:              data.address           ?? '',
+          street_address:       data.street_address    ?? '',
+          city:                 data.city              ?? '',
+          state:                data.state             ?? '',
+          country:              data.country           || 'United States',
+          postal_code:          data.postal_code       ?? '',
+          project_type:         (data.project_type as FormValues['project_type']) ?? '',
+          // Keep spec fields at defaults — tech will fill them in
+          concrete_sqft: 0, fence_linear_feet: 0,
+          concrete_thickness: '', concrete_psi: '', concrete_demo: '',
+          fence_height_material: '', gate_details: '',
+          optional_addons: '', notes: '',
+          annotated_photos: [],
+        })
+      }
+      setInitialLoading(false)
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recordId])
 
   useEffect(() => {
     setProgress(calcProgress(watchedValues))
@@ -235,7 +278,6 @@ export default function WalkthroughForm() {
         url: p.url,
         annotation_notes: p.annotation_notes,
       }))
-      // Collect the raw, pre-annotation URLs for the new original_photos column (text[])
       const original_photos = (data.annotated_photos ?? [])
         .map((p) => p.original_url)
         .filter((u): u is string => Boolean(u))
@@ -257,9 +299,22 @@ export default function WalkthroughForm() {
         notes:            data.notes            || null,
         annotated_photos,
         original_photos,
+        status:           'completed',
       }
 
-      const { error: dbError } = await supabase.from('walkthroughs').insert([payload])
+      let dbError
+      if (recordId) {
+        // UPDATE the existing pending row
+        ;({ error: dbError } = await supabase
+          .from('walkthroughs')
+          .update(payload)
+          .eq('id', recordId))
+      } else {
+        // INSERT a brand-new record
+        ;({ error: dbError } = await supabase
+          .from('walkthroughs')
+          .insert([payload]))
+      }
       if (dbError) throw new Error(dbError.message)
 
       setSuccess(true)
@@ -272,6 +327,18 @@ export default function WalkthroughForm() {
     }
   }
 
+  /* ── Loading Screen (initial pre-fill fetch) ─────────────── */
+  if (initialLoading) {
+    return (
+      <div className="app-shell" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+          <span className="spinner" style={{ width: 40, height: 40, borderWidth: 4 }} />
+          <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text-secondary)' }}>Loading job details…</p>
+        </div>
+      </div>
+    )
+  }
+
   /* ── Success Screen ─────────────────────────────────────── */
   if (success) {
     return (
@@ -280,10 +347,12 @@ export default function WalkthroughForm() {
           <div className="success-icon-ring">✅</div>
           <div style={{ textAlign: 'center' }}>
             <h2 style={{ margin: '0 0 8px', fontSize: 24, fontWeight: 800, color: '#166534' }}>
-              Walkthrough Saved!
+              {recordId ? 'Walkthrough Completed!' : 'Walkthrough Saved!'}
             </h2>
             <p style={{ margin: 0, color: '#15803d', fontSize: 15, lineHeight: 1.5 }}>
-              The job site data has been submitted successfully and saved to the system.
+              {recordId
+                ? 'The job has been marked as completed and all data saved to the system.'
+                : 'The job site data has been submitted successfully and saved to the system.'}
             </p>
           </div>
           <button onClick={() => setSuccess(false)} className="btn-submit" style={{ maxWidth: 300 }}>
@@ -581,14 +650,14 @@ export default function WalkthroughForm() {
             {submitting ? (
               <>
                 <span className="spinner" />
-                Saving Walkthrough…
+                {recordId ? 'Completing Job…' : 'Saving Walkthrough…'}
               </>
             ) : (
               <>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20 6L9 17l-5-5" />
                 </svg>
-                Submit Walkthrough
+                {recordId ? 'Complete Job' : 'Submit Walkthrough'}
               </>
             )}
           </button>
