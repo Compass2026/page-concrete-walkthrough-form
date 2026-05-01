@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useForm, useFieldArray, useWatch } from 'react-hook-form'
 import { motion, AnimatePresence } from 'framer-motion'
 import { supabase } from '@/lib/supabase'
@@ -25,6 +25,12 @@ import {
   Receipt,
   ArrowRight,
   X,
+  Pencil,
+  RotateCcw,
+  RefreshCcw,
+  Eraser,
+  Save,
+  ImageIcon,
   Eye,
   Calendar,
   Building2,
@@ -39,6 +45,11 @@ import {
 import './office.css'
 
 /* ─── Types ───────────────────────────────────────────────── */
+interface AnnotatedPhoto {
+  url: string
+  annotation_notes: string
+}
+
 interface Walkthrough {
   id: string
   created_at: string
@@ -56,6 +67,8 @@ interface Walkthrough {
   project_details: Record<string, unknown> | null
   notes: string | null
   job_photos: string[]
+  annotated_photos: AnnotatedPhoto[] | null
+  original_photos: string[] | null
 }
 
 interface LineItem {
@@ -126,6 +139,20 @@ export default function OfficePage() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [lightboxImg, setLightboxImg] = useState<string | null>(null)
+  const [drawTarget, setDrawTarget] = useState<{ url: string; notes: string; walkthroughId: string } | null>(null)
+
+  /* refresh walkthroughs after annotation save */
+  const refreshWalkthroughs = useCallback(async () => {
+    const { data } = await supabase
+      .from('walkthroughs')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (data) {
+      setWalkthroughs(data as Walkthrough[])
+      // also refresh selected if it matches
+      setSelected(prev => prev ? (data.find((w: Walkthrough) => w.id === prev.id) ?? prev) : null)
+    }
+  }, [])
 
   /* ── Fetch walkthroughs ─────────────────────────────────── */
   useEffect(() => {
@@ -477,28 +504,61 @@ export default function OfficePage() {
                   )}
                 </div>
 
-                {/* Photo Gallery */}
+                {/* Raw Photos */}
                 {selected.job_photos && selected.job_photos.length > 0 && (
                   <div className="photo-gallery-section">
                     <div className="photo-gallery-header">
                       <Camera size={16} />
-                      <span>Job Site Photos</span>
+                      <span>Field Photos</span>
                       <span className="photo-count">{selected.job_photos.length} photos</span>
                     </div>
                     <div className="photo-gallery-grid">
                       {selected.job_photos.map((url, i) => (
                         <motion.button
                           key={i}
-                          className="gallery-thumb"
-                          onClick={() => setLightboxImg(url)}
+                          className="gallery-thumb gallery-thumb-editable"
+                          onClick={() => setDrawTarget({ url, notes: '', walkthroughId: selected.id })}
                           whileHover={{ scale: 1.03 }}
                           whileTap={{ scale: 0.97 }}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img src={url} alt={`Site photo ${i + 1}`} loading="lazy" />
-                          <div className="gallery-thumb-overlay">
-                            <Eye size={18} />
+                          <div className="gallery-thumb-overlay gallery-thumb-draw-overlay">
+                            <Pencil size={16} />
+                            <span>Edit / Draw</span>
                           </div>
+                        </motion.button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Annotated Photos */}
+                {selected.annotated_photos && selected.annotated_photos.length > 0 && (
+                  <div className="photo-gallery-section" style={{ marginTop: 20 }}>
+                    <div className="photo-gallery-header">
+                      <ImageIcon size={16} />
+                      <span>Annotated Photos</span>
+                      <span className="photo-count annotated-count">{selected.annotated_photos.length} annotations</span>
+                    </div>
+                    <div className="photo-gallery-grid">
+                      {selected.annotated_photos.map((ap, i) => (
+                        <motion.button
+                          key={i}
+                          className="gallery-thumb gallery-thumb-editable"
+                          onClick={() => setDrawTarget({ url: ap.url, notes: ap.annotation_notes, walkthroughId: selected.id })}
+                          whileHover={{ scale: 1.03 }}
+                          whileTap={{ scale: 0.97 }}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={ap.url} alt={`Annotated photo ${i + 1}`} loading="lazy" />
+                          <div className="gallery-thumb-overlay gallery-thumb-draw-overlay">
+                            <Pencil size={16} />
+                            <span>Edit / Draw</span>
+                          </div>
+                          {ap.annotation_notes && (
+                            <div className="gallery-annotated-badge">✏️</div>
+                          )}
                         </motion.button>
                       ))}
                     </div>
@@ -540,7 +600,352 @@ export default function OfficePage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Drawing Modal ─────────────────────────────────── */}
+      <AnimatePresence>
+        {drawTarget && (
+          <DrawingModal
+            imageUrl={drawTarget.url}
+            initialNotes={drawTarget.notes}
+            walkthroughId={drawTarget.walkthroughId}
+            onClose={() => setDrawTarget(null)}
+            onSaved={refreshWalkthroughs}
+          />
+        )}
+      </AnimatePresence>
     </div>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════════ */
+/*  DRAWING MODAL                                               */
+/* ═══════════════════════════════════════════════════════════ */
+interface DrawingModalProps {
+  imageUrl: string
+  initialNotes: string
+  walkthroughId: string
+  onClose: () => void
+  onSaved: () => void
+}
+
+function DrawingModal({ imageUrl, initialNotes, walkthroughId, onClose, onSaved }: DrawingModalProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [isDrawing, setIsDrawing] = useState(false)
+  const [notes, setNotes] = useState(initialNotes)
+  const [saving, setSaving] = useState(false)
+  const [resetting, setResetting] = useState(false)
+  const [saveToast, setSaveToast] = useState<string | null>(null)
+  const historyRef = useRef<ImageData[]>([])
+  const lastPos = useRef<{ x: number; y: number } | null>(null)
+
+  /* Load image onto canvas — extracted so it can be called on reset too */
+  function loadImageUrl(url: string) {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    const img = new window.Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      const maxW = Math.min(700, window.innerWidth - 80)
+      const scale = Math.min(1, maxW / img.naturalWidth)
+      canvas.width = img.naturalWidth * scale
+      canvas.height = img.naturalHeight * scale
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+      historyRef.current = [ctx.getImageData(0, 0, canvas.width, canvas.height)]
+    }
+    img.onerror = () => {
+      canvas.width = 700
+      canvas.height = 450
+      ctx.fillStyle = '#f1f5f9'
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      ctx.fillStyle = '#94a3b8'
+      ctx.font = '16px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('Image failed to load', canvas.width / 2, canvas.height / 2)
+    }
+    img.src = url
+  }
+
+  /* Initial canvas load */
+  useEffect(() => {
+    loadImageUrl(imageUrl)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageUrl])
+
+  /* Reset to original photo from Supabase */
+  async function resetToOriginal() {
+    setResetting(true)
+    setSaveToast(null)
+    try {
+      const { data: wt, error } = await supabase
+        .from('walkthroughs')
+        .select('original_photos')
+        .eq('id', walkthroughId)
+        .single()
+      if (error) throw error
+      const originals: string[] = (wt?.original_photos as string[]) ?? []
+      if (originals.length === 0) {
+        setSaveToast('Error: No original photos found for this walkthrough.')
+        setResetting(false)
+        return
+      }
+      // Find matching original by comparing against the current imageUrl
+      // Prefer the one whose filename overlaps; fall back to index 0
+      const match = originals.find(o => {
+        const oName = o.split('/').pop()?.split('?')[0]
+        const iName = imageUrl.split('/').pop()?.split('?')[0]
+        return oName && iName && oName === iName
+      }) ?? originals[0]
+      loadImageUrl(match)
+      setNotes('')
+      setSaveToast('Canvas reset to original photo.')
+      setTimeout(() => setSaveToast(null), 2500)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error'
+      setSaveToast(`Error: ${msg}`)
+    } finally {
+      setResetting(false)
+    }
+  }
+
+  function getPos(e: React.MouseEvent | React.TouchEvent, canvas: HTMLCanvasElement) {
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
+    if ('touches' in e) {
+      return {
+        x: (e.touches[0].clientX - rect.left) * scaleX,
+        y: (e.touches[0].clientY - rect.top) * scaleY,
+      }
+    }
+    return {
+      x: ((e as React.MouseEvent).clientX - rect.left) * scaleX,
+      y: ((e as React.MouseEvent).clientY - rect.top) * scaleY,
+    }
+  }
+
+  function startDraw(e: React.MouseEvent | React.TouchEvent) {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    historyRef.current.push(ctx.getImageData(0, 0, canvas.width, canvas.height))
+    const pos = getPos(e, canvas)
+    lastPos.current = pos
+    setIsDrawing(true)
+    ctx.beginPath()
+    ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2)
+    ctx.fillStyle = '#2563eb'
+    ctx.fill()
+  }
+
+  function draw(e: React.MouseEvent | React.TouchEvent) {
+    if (!isDrawing) return
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx || !lastPos.current) return
+    e.preventDefault()
+    const pos = getPos(e, canvas)
+    ctx.beginPath()
+    ctx.moveTo(lastPos.current.x, lastPos.current.y)
+    ctx.lineTo(pos.x, pos.y)
+    ctx.strokeStyle = '#2563eb'
+    ctx.lineWidth = 4
+    ctx.lineCap = 'round'
+    ctx.lineJoin = 'round'
+    ctx.stroke()
+    lastPos.current = pos
+  }
+
+  function stopDraw() {
+    setIsDrawing(false)
+    lastPos.current = null
+  }
+
+  function undo() {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    if (historyRef.current.length > 1) {
+      historyRef.current.pop()
+      ctx.putImageData(historyRef.current[historyRef.current.length - 1], 0, 0)
+    }
+  }
+
+  function clear() {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    // restore first frame (original image)
+    if (historyRef.current.length > 0) {
+      ctx.putImageData(historyRef.current[0], 0, 0)
+      historyRef.current = [historyRef.current[0]]
+    }
+  }
+
+  async function handleSave() {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    setSaving(true)
+    try {
+      const blob: Blob = await new Promise((resolve, reject) =>
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error('Canvas export failed')), 'image/jpeg', 0.92)
+      )
+      const fileName = `annotated/${walkthroughId}-${Date.now()}.jpg`
+      const { error: upErr } = await supabase.storage
+        .from('job-photos')
+        .upload(fileName, blob, { contentType: 'image/jpeg', upsert: false })
+      if (upErr) throw upErr
+
+      const { data: urlData } = supabase.storage.from('job-photos').getPublicUrl(fileName)
+      const publicUrl = urlData.publicUrl
+
+      // Fetch current annotated_photos, append new one
+      const { data: wt, error: fetchErr } = await supabase
+        .from('walkthroughs')
+        .select('annotated_photos')
+        .eq('id', walkthroughId)
+        .single()
+      if (fetchErr) throw fetchErr
+
+      const existing: AnnotatedPhoto[] = (wt?.annotated_photos as AnnotatedPhoto[]) ?? []
+      const updated = [...existing, { url: publicUrl, annotation_notes: notes }]
+
+      const { error: updateErr } = await supabase
+        .from('walkthroughs')
+        .update({ annotated_photos: updated })
+        .eq('id', walkthroughId)
+      if (updateErr) throw updateErr
+
+      setSaveToast('Annotation saved successfully!')
+      setTimeout(() => {
+        onSaved()
+        onClose()
+      }, 1200)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Unknown error'
+      setSaveToast(`Error: ${msg}`)
+      setSaving(false)
+    }
+  }
+
+  return (
+    <motion.div
+      className="draw-modal-overlay"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+    >
+      <motion.div
+        className="draw-modal-card"
+        initial={{ scale: 0.92, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.92, opacity: 0, y: 20 }}
+        transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="draw-modal-header">
+          <div className="draw-modal-title">
+            <Pencil size={18} />
+            <span>Annotate Photo</span>
+          </div>
+          <div className="draw-toolbar">
+            <button className="draw-tool-btn" onClick={undo} title="Undo last stroke">
+              <RotateCcw size={15} />
+              <span>Undo</span>
+            </button>
+            <button
+              className="draw-tool-btn draw-tool-reset"
+              onClick={resetToOriginal}
+              disabled={resetting}
+              title="Reset to original photo — removes all annotations"
+            >
+              {resetting ? (
+                <div className="office-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+              ) : (
+                <RefreshCcw size={15} />
+              )}
+              <span>Reset to Original Photo</span>
+            </button>
+            <button className="draw-tool-btn draw-tool-clear" onClick={clear} title="Clear all drawings">
+              <Eraser size={15} />
+              <span>Clear</span>
+            </button>
+            <button className="draw-modal-close" onClick={onClose} title="Close">
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* Canvas */}
+        <div className="draw-canvas-wrap">
+          <canvas
+            ref={canvasRef}
+            className="draw-canvas"
+            onMouseDown={startDraw}
+            onMouseMove={draw}
+            onMouseUp={stopDraw}
+            onMouseLeave={stopDraw}
+            onTouchStart={startDraw}
+            onTouchMove={draw}
+            onTouchEnd={stopDraw}
+            style={{ cursor: 'crosshair', touchAction: 'none' }}
+          />
+          <div className="draw-marker-hint">
+            <div className="draw-marker-dot" />
+            <span>Blue marker active — draw directly on the photo</span>
+          </div>
+        </div>
+
+        {/* Notes */}
+        <div className="draw-notes-wrap">
+          <label className="draw-notes-label">
+            <FileText size={13} />
+            Annotation Notes
+          </label>
+          <textarea
+            className="draw-notes-textarea"
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            placeholder="Add notes about this photo (damage observed, measurements, recommendations…)"
+            rows={3}
+          />
+        </div>
+
+        {/* Save */}
+        <div className="draw-modal-footer">
+          {saveToast && (
+            <div className={`draw-toast ${saveToast.startsWith('Error') ? 'draw-toast-error' : 'draw-toast-success'}`}>
+              {saveToast.startsWith('Error') ? <AlertCircle size={15} /> : <CheckCircle size={15} />}
+              {saveToast}
+            </div>
+          )}
+          <button
+            className="draw-save-btn"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving ? (
+              <>
+                <div className="office-spinner" style={{ width: 18, height: 18, borderWidth: 2 }} />
+                <span>Saving…</span>
+              </>
+            ) : (
+              <>
+                <Save size={17} />
+                <span>Save Annotation</span>
+              </>
+            )}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   )
 }
 

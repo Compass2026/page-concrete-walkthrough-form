@@ -1268,3 +1268,315 @@
   transform: none !important;
 }
 
+/* ─── Gallery Edit/Draw overlay ───────────────────────────── */
+.gallery-thumb-editable .gallery-thumb-draw-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.gallery-thumb-draw-overlay span {
+  display: block;
+}
+
+.gallery-thumb:hover .gallery-thumb-draw-overlay {
+  background: rgba(29, 58, 164, 0.72);
+  opacity: 1;
+}
+
+.gallery-annotated-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 14px;
+  line-height: 1;
+  background: rgba(255,255,255,0.9);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+}
+
+.annotated-count {
+  background: #eff6ff;
+  color: #1d3aa4;
+}
+
+/* ─── Drawing Modal ───────────────────────────────────────── */
+.draw-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.draw-modal-card {
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow:
+    0 32px 100px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  width: 100%;
+  max-width: 760px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Header */
+.draw-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e8ecf1;
+  flex-shrink: 0;
+  background: linear-gradient(to right, #f8faff, #ffffff);
+}
+
+.draw-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+.draw-modal-title svg { color: #2563eb; }
+
+.draw-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.draw-tool-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: #f1f5f9;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.draw-tool-btn:hover {
+  background: #e0e7ef;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+
+.draw-tool-clear:hover {
+  background: #fff1f2;
+  border-color: #fecdd3;
+  color: #9f1239;
+}
+
+.draw-tool-reset {
+  background: #fffbeb;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.draw-tool-reset:hover {
+  background: #fef3c7;
+  border-color: #fbbf24;
+  color: #78350f;
+}
+
+.draw-tool-reset:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.draw-modal-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  border: 1.5px solid #e2e8f0;
+  background: #f8f9fb;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.draw-modal-close:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
+/* Canvas area */
+.draw-canvas-wrap {
+  flex: 1;
+  overflow: auto;
+  background: #0f172a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 16px 8px;
+  gap: 8px;
+  min-height: 0;
+}
+
+.draw-canvas {
+  display: block;
+  border-radius: 10px;
+  max-width: 100%;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.5), 0 8px 32px rgba(0,0,0,0.4);
+  user-select: none;
+}
+
+.draw-marker-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.02em;
+}
+
+.draw-marker-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3b82f6;
+  box-shadow: 0 0 6px rgba(59,130,246,0.8);
+  flex-shrink: 0;
+}
+
+/* Notes */
+.draw-notes-wrap {
+  padding: 14px 20px;
+  border-top: 1px solid #f1f5f9;
+  flex-shrink: 0;
+}
+
+.draw-notes-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+
+.draw-notes-textarea {
+  width: 100%;
+  padding: 10px 14px;
+  background: #f8f9fb;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0f172a;
+  font-family: inherit;
+  resize: none;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+  line-height: 1.6;
+}
+
+.draw-notes-textarea::placeholder { color: #94a3b8; }
+.draw-notes-textarea:focus {
+  border-color: #2563eb;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(29, 58, 164, 0.1);
+}
+
+/* Footer */
+.draw-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid #e8ecf1;
+  background: #f8faff;
+  flex-shrink: 0;
+}
+
+.draw-save-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #1d4ed8 0%, #1d3aa4 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 16px rgba(29, 58, 164, 0.4);
+  font-family: inherit;
+  margin-left: auto;
+}
+
+.draw-save-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(29, 58, 164, 0.5);
+}
+
+.draw-save-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.draw-toast {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 9px;
+}
+
+.draw-toast-success {
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  color: #166534;
+}
+
+.draw-toast-error {
+  background: #fef2f2;
+  border: 1.5px solid #fca5a5;
+  color: #991b1b;
+}
+
+
