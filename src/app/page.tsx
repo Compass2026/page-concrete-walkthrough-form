@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 const tools = [
   {
@@ -79,26 +80,7 @@ export default function HubPage() {
           align-items: center;
           gap: 0.75rem;
         }
-        .hub-logo-mark {
-          width: 38px;
-          height: 38px;
-          background: linear-gradient(135deg, #1E40AF 0%, #1D4ED8 100%);
-          border-radius: 10px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          box-shadow: 0 2px 8px rgba(29, 78, 216, 0.35);
-        }
-        .hub-logo-mark svg {
-          width: 20px;
-          height: 20px;
-          fill: none;
-          stroke: #fff;
-          stroke-width: 2;
-          stroke-linecap: round;
-          stroke-linejoin: round;
-        }
+
         .hub-brand {
           font-size: 1rem;
           font-weight: 700;
@@ -373,11 +355,14 @@ export default function HubPage() {
         {/* Header */}
         <header className="hub-header">
           <div className="hub-logo-row">
-            <div className="hub-logo-mark">
-              <svg viewBox="0 0 24 24">
-                <polygon points="12,2 22,20 2,20" />
-              </svg>
-            </div>
+            <Image
+              src="/page-concrete-logo.png"
+              alt="Page Concrete & Outdoor Services"
+              width={52}
+              height={52}
+              style={{ objectFit: 'contain', borderRadius: 8 }}
+              priority
+            />
             <div className="hub-brand">
               Page Concrete
               <span>Operating System</span>
