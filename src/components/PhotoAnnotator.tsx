@@ -5,6 +5,8 @@ import { createPortal } from 'react-dom'
 export interface AnnotatedPhoto {
   url: string
   annotation_notes: string
+  /** The original, un-annotated photo URL captured straight after upload */
+  original_url?: string
 }
 
 interface PhotoAnnotatorProps {

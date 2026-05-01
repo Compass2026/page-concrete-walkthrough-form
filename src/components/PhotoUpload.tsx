@@ -66,6 +66,7 @@ export default function PhotoUpload({ photos, onChange }: PhotoUploadProps) {
   /* ── Step 2: Annotator saves → compress annotated canvas → upload annotated file ── */
   async function handleAnnotationSave(annotatedFile: File, notes: string) {
     if (!pendingUrl) return
+    const originalUrl = pendingUrl // capture before clearing
     setPendingUrl(null) // close modal immediately
 
     setUploading(true)
@@ -93,6 +94,7 @@ export default function PhotoUpload({ photos, onChange }: PhotoUploadProps) {
       const newPhoto: AnnotatedPhoto = {
         url: data.publicUrl,
         annotation_notes: notes,
+        original_url: originalUrl,
       }
 
       onChange([...photos, newPhoto])

@@ -235,6 +235,10 @@ export default function WalkthroughForm() {
         url: p.url,
         annotation_notes: p.annotation_notes,
       }))
+      // Collect the raw, pre-annotation URLs for the new original_photos column (text[])
+      const original_photos = (data.annotated_photos ?? [])
+        .map((p) => p.original_url)
+        .filter((u): u is string => Boolean(u))
       const project_details = buildProjectDetails(data)
 
       const payload: Record<string, unknown> = {
@@ -252,6 +256,7 @@ export default function WalkthroughForm() {
         project_details,
         notes:            data.notes            || null,
         annotated_photos,
+        original_photos,
       }
 
       const { error: dbError } = await supabase.from('walkthroughs').insert([payload])
