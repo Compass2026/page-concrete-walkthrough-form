@@ -182,6 +182,28 @@ export default function IntakePage() {
 
       if (error) throw new Error(error.message)
 
+      // Fire-and-forget webhook — does NOT block the success toast
+      fetch(
+        'https://services.leadconnectorhq.com/hooks/PLTocizoauUvHMW47HiN/webhook-trigger/a3d45aaa-3e30-410c-b08d-412b1af806e5',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            first_name:     data.first_name,
+            last_name:      data.last_name,
+            phone:          data.phone,
+            email:          data.email    || null,
+            street:         data.street_address,
+            city:           data.city,
+            state:          data.state,
+            zip:            data.postal_code || null,
+            assigned_owner: data.assigned_owner,
+            project_type:   data.project_type,
+            notes:          data.notes    || null,
+          }),
+        }
+      ).catch(() => { /* silent — webhook errors never surface to the user */ })
+
       reset()
       setToast({ type: 'success', message: `Lead for ${data.first_name} ${data.last_name} added successfully!` })
     } catch (err: unknown) {
