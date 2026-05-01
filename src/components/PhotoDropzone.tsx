@@ -1,11 +1,14 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDropzone } from 'react-dropzone'
+import imageCompression from 'browser-image-compression'
 
 interface PhotoDropzoneProps {
   files: File[]
   onChange: (files: File[]) => void
 }
+
+const MAX_PHOTOS = 20
 
 export default function PhotoDropzone({ files, onChange }: PhotoDropzoneProps) {
   const [previews, setPreviews] = useState<string[]>([])
@@ -23,13 +26,26 @@ export default function PhotoDropzone({ files, onChange }: PhotoDropzoneProps) {
   }, [files.length])
 
   const onDrop = useCallback(
-    (accepted: File[]) => {
-      const remaining = 10 - files.length
+    async (accepted: File[]) => {
+      const remaining = MAX_PHOTOS - files.length
       if (remaining <= 0) return
       const added = accepted.slice(0, remaining)
-      const newFiles = [...files, ...added]
+
+      // Compress each image before passing upstream
+      const compressed = await Promise.all(
+        added.map((f) =>
+          imageCompression(f, {
+            maxSizeMB: 0.8,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+            fileType: 'image/jpeg',
+          })
+        )
+      )
+
+      const newFiles = [...files, ...compressed]
       onChange(newFiles)
-      const newUrls = added.map((f) => URL.createObjectURL(f))
+      const newUrls = compressed.map((f) => URL.createObjectURL(f))
       previewUrlsRef.current = [...previewUrlsRef.current, ...newUrls]
       setPreviews((p) => [...p, ...newUrls])
     },
@@ -46,11 +62,11 @@ export default function PhotoDropzone({ files, onChange }: PhotoDropzoneProps) {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { 'image/*': ['.jpg', '.jpeg', '.png', '.heic', '.webp', '.gif'] },
-    maxFiles: 10,
-    disabled: files.length >= 10,
+    maxFiles: MAX_PHOTOS,
+    disabled: files.length >= MAX_PHOTOS,
   })
 
-  const atMax = files.length >= 10
+  const atMax = files.length >= MAX_PHOTOS
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -73,7 +89,7 @@ export default function PhotoDropzone({ files, onChange }: PhotoDropzoneProps) {
             </p>
           ) : atMax ? (
             <p style={{ fontWeight: 700, color: 'var(--text-secondary)', margin: 0, fontSize: 15 }}>
-              Maximum 10 photos reached
+              Maximum {MAX_PHOTOS} photos reached
             </p>
           ) : (
             <>
@@ -81,7 +97,7 @@ export default function PhotoDropzone({ files, onChange }: PhotoDropzoneProps) {
                 Tap to add photos
               </p>
               <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0 }}>
-                JPG · PNG · HEIC · WEBP · Up to 10 images
+                JPG · PNG · HEIC · WEBP · Up to {MAX_PHOTOS} images
               </p>
             </>
           )}
@@ -99,7 +115,7 @@ export default function PhotoDropzone({ files, onChange }: PhotoDropzoneProps) {
             letterSpacing: '0.06em',
             margin: '0 0 8px',
           }}>
-            {files.length} / 10 selected
+            {files.length} / {MAX_PHOTOS} selected
           </p>
           <div className="photo-thumb-grid">
             {previews.map((src, i) => (

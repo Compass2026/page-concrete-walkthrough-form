@@ -1,5 +1,6 @@
 'use client'
 import { useRef, useState } from 'react'
+import imageCompression from 'browser-image-compression'
 import { supabase } from '@/lib/supabase'
 
 interface PhotoUploadProps {
@@ -14,7 +15,8 @@ export default function PhotoUpload({ urls, onChange }: PhotoUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
 
-  const atMax = urls.length >= 10
+  const MAX_PHOTOS = 20
+  const atMax = urls.length >= MAX_PHOTOS
 
   /* ── Triggered the instant the user confirms a captured photo ── */
   async function handleCapture(e: React.ChangeEvent<HTMLInputElement>) {
@@ -30,12 +32,20 @@ export default function PhotoUpload({ urls, onChange }: PhotoUploadProps) {
     setUploadError(null)
 
     try {
-      const ext = file.name.split('.').pop() ?? 'jpg'
+      // ── Compress image before upload to avoid cellular-network timeouts ──
+      const compressedFile = await imageCompression(file, {
+        maxSizeMB: 0.8,           // Target ≤ 800 KB
+        maxWidthOrHeight: 1920,   // Keep resolution reasonable
+        useWebWorker: true,       // Non-blocking compression
+        fileType: 'image/jpeg',   // Normalize to JPEG for best size
+      })
+
+      const ext = 'jpg' // Always JPEG after compression
       const path = `walkthroughs/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
       const { error: uploadErr } = await supabase.storage
         .from('job-photos')
-        .upload(path, file, { upsert: false, contentType: file.type })
+        .upload(path, compressedFile, { upsert: false, contentType: 'image/jpeg' })
 
       if (uploadErr) throw new Error(uploadErr.message)
 
@@ -116,7 +126,7 @@ export default function PhotoUpload({ urls, onChange }: PhotoUploadProps) {
           <>
             <span style={{ fontSize: 22 }}>🚫</span>
             <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-secondary)' }}>
-              Maximum 10 photos reached
+              Maximum {MAX_PHOTOS} photos reached
             </span>
           </>
         ) : (
@@ -128,7 +138,7 @@ export default function PhotoUpload({ urls, onChange }: PhotoUploadProps) {
               </p>
               <p style={{ margin: 0, fontSize: 12, color: '#3b82f6', fontWeight: 500 }}>
                 {urls.length > 0
-                  ? `${urls.length} / 10 captured — tap to add more`
+                  ? `${urls.length} / ${MAX_PHOTOS} captured — tap to add more`
                   : 'Tap to open camera'}
               </p>
             </div>
@@ -169,7 +179,7 @@ export default function PhotoUpload({ urls, onChange }: PhotoUploadProps) {
               margin: '0 0 10px',
             }}
           >
-            {urls.length} / 10 uploaded
+            {urls.length} / {MAX_PHOTOS} uploaded
           </p>
           <div
             style={{
