@@ -38,21 +38,52 @@ export default function OfficeDashboard() {
   const [jobs, setJobs] = useState<DatabaseJob[]>([])
   const [loading, setLoading] = useState(true)
 
+  const [ytdRevenue, setYtdRevenue] = useState(0)
+  const [outstandingAR, setOutstandingAR] = useState(0)
+  const [activeJobsCount, setActiveJobsCount] = useState(0)
+
   useEffect(() => {
-    async function fetchJobs() {
-      const { data, error } = await supabase
+    async function fetchData() {
+      const { data: jobsData } = await supabase
         .from('jobs')
         .select('id, job_title, client_name, location_address, status')
         .order('created_at', { ascending: false })
       
-      if (data) {
-        setJobs(data as DatabaseJob[])
+      if (jobsData) {
+        const fetchedJobs = jobsData as DatabaseJob[]
+        setJobs(fetchedJobs)
+        
+        const activeCount = fetchedJobs.filter(
+          j => j.status?.toLowerCase() !== 'closed' && j.status?.toLowerCase() !== 'invoiced'
+        ).length
+        setActiveJobsCount(activeCount)
       }
+
+      const { data: invoicesData } = await supabase
+        .from('invoices')
+        .select('total_amount, balance_due, status')
+
+      if (invoicesData) {
+        const ytd = invoicesData
+          .filter(inv => inv.status?.toLowerCase() === 'closed' || inv.status?.toLowerCase() === 'paid')
+          .reduce((sum, inv) => sum + (Number(inv.total_amount) || 0), 0)
+        setYtdRevenue(ytd)
+
+        const ar = invoicesData
+          .filter(inv => inv.status?.toLowerCase() !== 'closed' && inv.status?.toLowerCase() !== 'paid')
+          .reduce((sum, inv) => sum + (Number(inv.balance_due) || 0), 0)
+        setOutstandingAR(ar)
+      }
+
       setLoading(false)
     }
     
-    fetchJobs()
+    fetchData()
   }, [])
+
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(val)
+  }
 
   return (
     <div className="flex h-screen bg-gray-50 text-slate-900 font-sans overflow-hidden">
@@ -174,7 +205,7 @@ export default function OfficeDashboard() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">$12,500</div>
+                  <div className="text-2xl font-bold text-gray-900">{formatCurrency(outstandingAR)}</div>
                   <div className="flex items-center mt-1 text-xs">
                     <span className="text-amber-600 font-medium flex items-center">
                       <TrendingUp size={12} className="mr-1 rotate-180" /> -2%
@@ -193,7 +224,7 @@ export default function OfficeDashboard() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">$128,000</div>
+                  <div className="text-2xl font-bold text-gray-900">{formatCurrency(ytdRevenue)}</div>
                   <div className="flex items-center mt-1 text-xs">
                     <span className="text-emerald-600 font-medium flex items-center">
                       <TrendingUp size={12} className="mr-1" /> +24%
@@ -212,7 +243,7 @@ export default function OfficeDashboard() {
                   </div>
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-gray-900">24</div>
+                  <div className="text-2xl font-bold text-gray-900">{activeJobsCount}</div>
                   <div className="flex items-center mt-1 text-xs">
                     <span className="text-emerald-600 font-medium flex items-center">
                       <Activity size={12} className="mr-1" /> +3
@@ -263,7 +294,7 @@ export default function OfficeDashboard() {
                           <td className="py-6 px-6 align-top">
                             <div className="font-semibold text-gray-900 text-sm">{job.client_name}</div>
                             <div className="text-xs text-gray-500 mt-1 flex flex-col gap-0.5">
-                              <span className="truncate max-w-[200px]" title={job.id}>{job.id}</span>
+                              <span className="truncate max-w-[250px]" title={job.location_address || ''}>{job.location_address}</span>
                               <span className="text-gray-400">{job.job_title}</span>
                             </div>
                           </td>
@@ -318,11 +349,10 @@ export default function OfficeDashboard() {
                             <div className="h-5"></div> {/* Spacer to accommodate absolute positioned labels */}
                           </td>
                           
-                          {/* Actions Column */}
                           <td className="py-6 px-6 text-right align-top">
-                            <button className="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
+                            <a href={`/office/jobs/${job.id}`} className="inline-block text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
                               View
-                            </button>
+                            </a>
                           </td>
                         </tr>
                       )
