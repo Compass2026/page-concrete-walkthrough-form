@@ -142,12 +142,12 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
             <div className="flex flex-col sm:flex-row sm:items-center text-gray-500 gap-3 sm:gap-6 text-sm md:text-base">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-gray-700">Client:</span> 
-                {job.client_name}
+                {job.first_name ? `${job.first_name} ${job.last_name || ''}`.trim() : job.client_name}
               </div>
               <div className="hidden sm:block w-1.5 h-1.5 bg-gray-300 rounded-full"></div>
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-gray-700">Location:</span> 
-                {job.location_address}
+                {job.street_address ? [job.street_address, job.city, job.state].filter(Boolean).join(', ') : job.location_address}
               </div>
             </div>
           </div>
