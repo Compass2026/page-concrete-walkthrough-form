@@ -428,11 +428,11 @@ export default function WalkthroughForm() {
                   />
                 </Field>
               </div>
-              <Field label="Address Line 2 (Apt, Suite…)">
-                <input className="field-input" placeholder="Apt 4B, Suite 100, etc." autoComplete="address-line2" {...register('address')} />
-              </Field>
               <Field label="Street Address *" error={errors.street_address?.message}>
                 <input className={`field-input${errors.street_address ? ' error' : ''}`} placeholder="123 Main St" autoComplete="street-address" {...register('street_address', { required: REQUIRED })} />
+              </Field>
+              <Field label="Address Line 2 (Apt, Suite…)">
+                <input className="field-input" placeholder="Apt 4B, Suite 100, etc." autoComplete="address-line2" {...register('address')} />
               </Field>
               <div className="grid-2">
                 <Field label="City *" error={errors.city?.message}>
