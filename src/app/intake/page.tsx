@@ -162,7 +162,7 @@ export default function IntakePage() {
   const onSubmit = async (data: IntakeFormValues) => {
     setSubmitting(true)
     try {
-      const { error } = await supabase.from('walkthroughs').insert([{
+      const { data: inserted, error } = await supabase.from('walkthroughs').insert([{
         first_name:     data.first_name,
         last_name:      data.last_name,
         phone:          data.phone,
@@ -178,9 +178,11 @@ export default function IntakePage() {
           assigned_owner: data.assigned_owner,
           project_type:   data.project_type,
         },
-      }])
+      }]).select('id').single()
 
       if (error) throw new Error(error.message)
+
+      const supabaseId = inserted?.id ?? null
 
       // Fire-and-forget webhook — does NOT block the success toast
       fetch(
@@ -189,6 +191,7 @@ export default function IntakePage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            id:             supabaseId,
             first_name:     data.first_name,
             last_name:      data.last_name,
             phone:          data.phone,
@@ -310,9 +313,10 @@ export default function IntakePage() {
                     onFocus={() => onFocus('phone')} onBlur={onBlur}
                   />
                 </Field>
-                <Field label="Email" error={errors.email?.message}>
+                <Field label="Email" required error={errors.email?.message}>
                   <input
                     {...register('email', {
+                      required: 'Required',
                       pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Invalid email address' },
                     })}
                     type="email" placeholder="jane@example.com"
