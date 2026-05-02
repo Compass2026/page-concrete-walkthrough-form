@@ -708,10 +708,10 @@ function AppHeader({ progress }: { progress: number }) {
           href="/"
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
-            padding: '5px 12px', borderRadius: 8,
-            background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
-            color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 600,
-            textDecoration: 'none', transition: 'background 0.15s',
+            padding: '6px 13px', borderRadius: 8,
+            background: '#eff6ff', border: '1px solid #bfdbfe',
+            color: '#1d4ed8', fontSize: 12, fontWeight: 700,
+            textDecoration: 'none', whiteSpace: 'nowrap',
           }}
         >
           ← Hub
