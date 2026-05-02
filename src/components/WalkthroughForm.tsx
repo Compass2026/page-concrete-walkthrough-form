@@ -303,6 +303,8 @@ export default function WalkthroughForm() {
       }
 
       let dbError
+      let supabaseId: string | null = recordId  // default to existing ID when updating
+
       if (recordId) {
         // UPDATE the existing pending row
         ;({ error: dbError } = await supabase
@@ -310,12 +312,26 @@ export default function WalkthroughForm() {
           .update(payload)
           .eq('id', recordId))
       } else {
-        // INSERT a brand-new record
-        ;({ error: dbError } = await supabase
+        // INSERT a brand-new record — capture the generated id
+        const { data: inserted, error: insertError } = await supabase
           .from('walkthroughs')
-          .insert([payload]))
+          .insert([payload])
+          .select('id')
+          .single()
+        dbError = insertError
+        if (inserted) supabaseId = inserted.id
       }
       if (dbError) throw new Error(dbError.message)
+
+      // Fire GoHighLevel webhook (non-blocking)
+      const webhookUrl = process.env.NEXT_PUBLIC_GHL_WALKTHROUGH_WEBHOOK_URL
+      if (webhookUrl) {
+        fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: supabaseId, ...payload }),
+        }).catch(() => { /* silent — never block UI */ })
+      }
 
       setSuccess(true)
       reset()
@@ -392,10 +408,24 @@ export default function WalkthroughForm() {
               </div>
               <div className="grid-2">
                 <Field label="Phone *" error={errors.phone?.message}>
-                  <input className={`field-input${errors.phone ? ' error' : ''}`} placeholder="(555) 000-0000" type="tel" autoComplete="tel" inputMode="tel" {...register('phone', { required: REQUIRED })} />
+                  <input
+                    className={`field-input${errors.phone ? ' error' : ''}`}
+                    placeholder="(555) 000-0000"
+                    type="tel"
+                    autoComplete="tel"
+                    inputMode="tel"
+                    {...register('phone', { required: REQUIRED })}
+                  />
                 </Field>
-                <Field label="Email" error={errors.email?.message}>
-                  <input className="field-input" placeholder="jane@example.com" type="email" autoComplete="email" inputMode="email" {...register('email')} />
+                <Field label="Email *" error={errors.email?.message}>
+                  <input
+                    className={`field-input${errors.email ? ' error' : ''}`}
+                    placeholder="jane@example.com"
+                    type="email"
+                    autoComplete="email"
+                    inputMode="email"
+                    {...register('email', { required: REQUIRED })}
+                  />
                 </Field>
               </div>
               <Field label="Address Line 2 (Apt, Suite…)">
