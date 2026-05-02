@@ -45,6 +45,23 @@ const tools = [
     bg: 'rgba(29, 78, 216, 0.07)',
     badge: 'Field',
   },
+  {
+    href: '/Invoice',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
+        <line x1="16" y1="13" x2="8" y2="13" />
+        <line x1="16" y1="17" x2="8" y2="17" />
+        <polyline points="10 9 9 9 8 9" />
+      </svg>
+    ),
+    label: 'Quick Invoice',
+    description: 'Generate on-the-spot invoices, send digital payment links, and print paper receipts.',
+    accent: '#0D9488',
+    bg: 'rgba(13, 148, 136, 0.07)',
+    badge: 'BILLING',
+  },
 ]
 
 export default function HubPage() {
@@ -531,6 +548,43 @@ export default function HubPage() {
               </div>
               <div className="card-cta" style={{ color: '#16A34A' }}>
                 Open Inbox
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 8h10M9 4l4 4-4 4" />
+                </svg>
+              </div>
+            </Link>
+
+            {/* Card 5 – Quick Invoice */}
+            <Link
+              href="/Invoice"
+              className="tool-card"
+              id="tool-card-invoice"
+              aria-label="Quick Invoice"
+            >
+              <div
+                className="card-icon-wrap"
+                style={{ background: 'rgba(13, 148, 136, 0.08)' }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="#0D9488" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                  <polyline points="14 2 14 8 20 8" />
+                  <line x1="16" y1="13" x2="8" y2="13" />
+                  <line x1="16" y1="17" x2="8" y2="17" />
+                  <polyline points="10 9 9 9 8 9" />
+                </svg>
+              </div>
+              <span
+                className="card-badge"
+                style={{ background: '#F0FDFA', color: '#0D9488' }}
+              >
+                BILLING
+              </span>
+              <div className="card-title">Quick Invoice</div>
+              <div className="card-desc">
+                Generate on-the-spot invoices, send digital payment links, and print paper receipts.
+              </div>
+              <div className="card-cta" style={{ color: '#0D9488' }}>
+                Open Tool
                 <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
                   <path d="M3 8h10M9 4l4 4-4 4" />
                 </svg>
