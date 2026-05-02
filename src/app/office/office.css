@@ -225,6 +225,27 @@
   gap: 16px;
 }
 
+.topbar-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.topbar-back-btn:hover {
+  background: #e0e7ff;
+  border-color: #a5b4fc;
+  color: #1d3aa4;
+}
+
 .topbar-date {
   display: flex;
   align-items: center;

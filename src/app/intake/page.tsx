@@ -258,6 +258,24 @@ export default function IntakePage() {
       {/* ── Form Card ───────────────────────────────────────── */}
       <div style={{ width: '100%', maxWidth: 768 }}>
 
+        {/* Back to Command Center */}
+        <div style={{ marginBottom: 20 }}>
+          <a
+            href="/"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '8px 16px', borderRadius: 10,
+              background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+              color: 'rgba(255,255,255,0.85)', fontSize: 13, fontWeight: 600,
+              textDecoration: 'none', transition: 'background 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.18)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.1)')}
+          >
+            ← Command Center
+          </a>
+        </div>
+
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}

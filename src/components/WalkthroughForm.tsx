@@ -703,6 +703,20 @@ function AppHeader({ progress }: { progress: number }) {
   return (
     <header className="app-header">
       <div className="app-header-inner">
+        {/* Back to Command Center */}
+        <a
+          href="/"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5,
+            padding: '5px 12px', borderRadius: 8,
+            background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)',
+            color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 600,
+            textDecoration: 'none', transition: 'background 0.15s',
+          }}
+        >
+          ← Hub
+        </a>
+
         {/* Logo */}
         <div className="header-logo-wrap">
           {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -261,6 +261,9 @@ export default function OfficePage() {
           </div>
         </div>
         <div className="topbar-right">
+          <a href="/" className="topbar-back-btn" title="Back to Command Center">
+            ← Command Center
+          </a>
           <span className="topbar-date">
             <Calendar size={14} />
             {new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}

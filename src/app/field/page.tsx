@@ -573,6 +573,13 @@ export default function FieldInboxPage() {
             </div>
           </div>
 
+          <a
+            href="/"
+            className="fi-refresh-btn"
+            aria-label="Back to Command Center"
+          >
+            ← Hub
+          </a>
           <button
             className={`fi-refresh-btn${refreshing ? ' spinning' : ''}`}
             onClick={() => fetchPending(true)}
