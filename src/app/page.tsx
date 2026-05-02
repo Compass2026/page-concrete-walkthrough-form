@@ -590,6 +590,41 @@ export default function HubPage() {
                 </svg>
               </div>
             </Link>
+
+            {/* Card 6 – Crew Dashboard */}
+            <Link
+              href="/crew"
+              className="tool-card"
+              id="tool-card-crew"
+              aria-label="Crew Dashboard"
+            >
+              <div
+                className="card-icon-wrap"
+                style={{ background: 'rgba(217, 119, 6, 0.08)' }}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                  <line x1="12" y1="18" x2="12.01" y2="18" />
+                  <path d="M9 11l2 2 4-4" />
+                </svg>
+              </div>
+              <span
+                className="card-badge"
+                style={{ background: '#FFFBEB', color: '#D97706' }}
+              >
+                MOBILE
+              </span>
+              <div className="card-title">Crew Dashboard</div>
+              <div className="card-desc">
+                Mobile-first dashboard for field ops to view schedules, log materials, and complete jobs.
+              </div>
+              <div className="card-cta" style={{ color: '#D97706' }}>
+                Open App
+                <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 8h10M9 4l4 4-4 4" />
+                </svg>
+              </div>
+            </Link>
           </div>
         </main>
 
