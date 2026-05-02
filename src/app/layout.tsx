@@ -2,12 +2,32 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Page Concrete – Walkthrough Form',
-  description: 'Field technician walkthrough data entry form for Page Concrete job sites.',
+  title: 'Page Concrete Walkthrough',
+  description: 'Client details and project walkthrough form.',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'Page Concrete',
+  },
+  openGraph: {
+    title: 'Page Concrete Walkthrough',
+    description: 'Client details and project walkthrough form.',
+    siteName: 'Page Concrete & Outdoor Services',
+    images: [
+      {
+        url: '/opengraph-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Page Concrete & Outdoor Services logo',
+      },
+    ],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Page Concrete Walkthrough',
+    description: 'Client details and project walkthrough form.',
+    images: ['/opengraph-image.png'],
   },
 }
 
