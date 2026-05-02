@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Plus, Trash2, Send, FileText, ArrowLeft, Printer, Search, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 interface LineItem {
@@ -13,7 +14,10 @@ interface LineItem {
   unitPrice: number;
 }
 
-export default function InvoicePage() {
+function InvoiceContent() {
+  const searchParams = useSearchParams();
+  const jobId = searchParams.get('jobId');
+
   const [clientFirstName, setClientFirstName] = useState('');
   const [clientLastName, setClientLastName] = useState('');
   const [streetAddress, setStreetAddress] = useState('');
@@ -30,6 +34,29 @@ export default function InvoicePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [requireDeposit, setRequireDeposit] = useState(false);
+
+  useEffect(() => {
+    if (!jobId) return;
+    const fetchJobData = async () => {
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('first_name, last_name, email, phone, street_address, city, state, postal_code, client_name, location_address')
+        .eq('id', jobId)
+        .single();
+        
+      if (!error && data) {
+        setClientFirstName(data.first_name || (data.client_name ? data.client_name.split(' ')[0] : ''));
+        setClientLastName(data.last_name || (data.client_name && data.client_name.split(' ').length > 1 ? data.client_name.split(' ').slice(1).join(' ') : ''));
+        setStreetAddress(data.street_address || data.location_address || '');
+        setCity(data.city || '');
+        setState(data.state || '');
+        setPostalCode(data.postal_code || '');
+        setClientEmail(data.email || '');
+        setClientPhone(data.phone || '');
+      }
+    };
+    fetchJobData();
+  }, [jobId]);
 
   useEffect(() => {
     const searchClients = async () => {
@@ -794,5 +821,20 @@ export default function InvoicePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function InvoicePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="flex flex-col items-center gap-4 text-slate-500">
+          <Loader2 className="w-8 h-8 animate-spin" />
+          <p className="font-medium">Loading invoice generator...</p>
+        </div>
+      </div>
+    }>
+      <InvoiceContent />
+    </Suspense>
   );
 }

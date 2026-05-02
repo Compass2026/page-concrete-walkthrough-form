@@ -18,7 +18,8 @@ import {
   Plus,
   Inbox,
   ClipboardCheck,
-  Receipt
+  Receipt,
+  FileSignature
 } from 'lucide-react'
 
 type JobStage = 'Lead' | 'Walkthrough' | 'Quoted' | 'Scheduled' | 'In Progress' | 'Invoiced'
@@ -124,6 +125,10 @@ export default function OfficeDashboard() {
           <a href="/walkthrough-form" className="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors group">
             <ClipboardCheck size={18} className="mr-3 group-hover:text-blue-400 transition-colors" />
             <span className="font-medium text-sm">Walkthrough</span>
+          </a>
+          <a href="/proposal/new" className="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors group">
+            <FileSignature size={18} className="mr-3 group-hover:text-blue-400 transition-colors" />
+            <span className="font-medium text-sm">Create Proposal</span>
           </a>
           <a href="/Invoice" className="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors group">
             <Receipt size={18} className="mr-3 group-hover:text-blue-400 transition-colors" />

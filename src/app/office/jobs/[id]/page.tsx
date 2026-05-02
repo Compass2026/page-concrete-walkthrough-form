@@ -172,11 +172,15 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
               <h2 className="text-2xl font-bold text-gray-900 tracking-tight">Financials</h2>
               <p className="text-gray-500 mt-2 leading-relaxed">Manage quotes, invoices, and track payments for this project.</p>
             </div>
-            <div className="mt-auto">
-              <button className="w-full py-3.5 px-4 bg-gray-50 hover:bg-gray-100 text-gray-900 border border-gray-200 rounded-xl font-semibold transition-colors flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-700 group-hover:border-blue-100">
-                <Plus size={18} className="mr-2" />
+            <div className="mt-auto grid grid-cols-2 gap-3">
+              <Link href={`/proposal/new?jobId=${id}`} className="w-full py-3 px-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center shadow-sm text-sm">
+                <Plus size={16} className="mr-1.5 shrink-0" />
+                Create Proposal
+              </Link>
+              <Link href={`/Invoice?jobId=${id}`} className="w-full py-3 px-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-xl font-semibold transition-colors flex items-center justify-center shadow-sm text-sm group-hover:border-gray-300">
+                <Plus size={16} className="mr-1.5 shrink-0" />
                 Create Invoice
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -190,9 +194,9 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
               <p className="text-gray-500 mt-2 leading-relaxed">Review site conditions, photos, and completed walkthroughs.</p>
             </div>
             <div className="mt-auto">
-              <button className="w-full py-3.5 px-4 bg-gray-50 hover:bg-gray-100 text-gray-900 border border-gray-200 rounded-xl font-semibold transition-colors flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-700 group-hover:border-blue-100">
+              <Link href={`/walkthrough-form?jobId=${id}`} className="w-full py-3.5 px-4 bg-gray-50 hover:bg-gray-100 text-gray-900 border border-gray-200 rounded-xl font-semibold transition-colors flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-700 group-hover:border-blue-100">
                 View Walkthrough
-              </button>
+              </Link>
             </div>
           </div>
 
@@ -206,9 +210,9 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
               <p className="text-gray-500 mt-2 leading-relaxed">Track team hours, resource usage, and material costs.</p>
             </div>
             <div className="mt-auto">
-              <button className="w-full py-3.5 px-4 bg-gray-50 hover:bg-gray-100 text-gray-900 border border-gray-200 rounded-xl font-semibold transition-colors flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-700 group-hover:border-blue-100">
+              <Link href="#" className="w-full py-3.5 px-4 bg-gray-50 hover:bg-gray-100 text-gray-900 border border-gray-200 rounded-xl font-semibold transition-colors flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-700 group-hover:border-blue-100">
                 View Time Logs
-              </button>
+              </Link>
             </div>
           </div>
 
