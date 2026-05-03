@@ -1,16 +1,48 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Home, MessageSquare, Wrench, UserCircle, MapPin, 
   HardHat, Camera, ClipboardList, Package, ArrowLeft, 
   FileText, PhoneCall, CheckCircle2, ChevronRight 
 } from 'lucide-react';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabaseClient';
+
+interface DatabaseJob {
+  id: number;
+  first_name: string | null;
+  last_name: string | null;
+  client_name: string | null;
+  street_address: string | null;
+  city: string | null;
+  location_address: string | null;
+  title: string | null;
+  status: string | null;
+}
 
 export default function CrewDashboard() {
   const [activeTab, setActiveTab] = useState('jobs');
   const [selectedJob, setSelectedJob] = useState<{id: number, client: string, address: string} | null>(null);
+  const [jobs, setJobs] = useState<DatabaseJob[]>([]);
+  const [loadingJobs, setLoadingJobs] = useState(true);
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('id, first_name, last_name, client_name, street_address, city, location_address, title, status')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        setJobs(data as DatabaseJob[]);
+      }
+      setLoadingJobs(false);
+    };
+
+    fetchJobs();
+  }, []);
 
   const renderJobsView = () => {
     if (selectedJob) {
@@ -72,38 +104,66 @@ export default function CrewDashboard() {
       );
     }
 
+    if (loadingJobs) {
+      return (
+        <div className="p-4 flex items-center justify-center h-64">
+          <div className="w-10 h-10 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+        </div>
+      );
+    }
+
     return (
       <div className="p-4 animate-in fade-in duration-300">
         <h2 className="text-2xl font-bold text-slate-800 mb-6 px-1">Today's Schedule</h2>
-        <div className="space-y-6">
-          {[
-            { id: 1, client: "Johnson Residence", address: "123 Oak St, Raleigh", status: "Next" },
-            { id: 2, client: "Smith Commercial", address: "890 Industrial Way, Durham", status: "Pending" }
-          ].map(job => (
-            <div key={job.id} className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="font-bold text-3xl text-slate-900 mb-2">{job.client}</h3>
-                  <div className="flex items-center text-slate-500 text-xl">
-                    <MapPin className="w-6 h-6 mr-2 flex-shrink-0 text-blue-500" />
-                    <span className="truncate">{job.address}</span>
+        {jobs.length === 0 ? (
+          <div className="h-48 flex flex-col items-center justify-center text-center">
+            <p className="text-slate-400 text-lg font-medium">No jobs scheduled</p>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {jobs.map((job, index) => {
+              const clientName =
+                job.first_name || job.last_name
+                  ? `${job.first_name ?? ''} ${job.last_name ?? ''}`.trim()
+                  : job.client_name ?? 'Unknown Client';
+
+              const addressDisplay =
+                job.street_address
+                  ? `${job.street_address}, ${job.city ?? ''}`.replace(/, $/, '')
+                  : job.location_address ?? 'No address on file';
+
+              const jobForSelected = { id: job.id, client: clientName, address: addressDisplay };
+
+              return (
+                <div key={job.id} className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="font-bold text-3xl text-slate-900 mb-2">{clientName}</h3>
+                      {job.title && (
+                        <p className="text-slate-500 text-base mb-1">{job.title}</p>
+                      )}
+                      <div className="flex items-center text-slate-500 text-xl">
+                        <MapPin className="w-6 h-6 mr-2 flex-shrink-0 text-blue-500" />
+                        <span className="truncate">{addressDisplay}</span>
+                      </div>
+                    </div>
                   </div>
+                  {index === 0 && (
+                    <div className="inline-block bg-emerald-100 text-emerald-800 px-4 py-1.5 rounded-full text-sm font-extrabold uppercase tracking-widest mb-6">
+                      Up Next
+                    </div>
+                  )}
+                  <button 
+                    onClick={() => setSelectedJob(jobForSelected)}
+                    className="mt-2 w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-2xl py-6 rounded-2xl flex justify-center items-center shadow-lg shadow-blue-200/50 transition-colors"
+                  >
+                    Open Job
+                  </button>
                 </div>
-              </div>
-              {job.status === 'Next' && (
-                <div className="inline-block bg-emerald-100 text-emerald-800 px-4 py-1.5 rounded-full text-sm font-extrabold uppercase tracking-widest mb-6">
-                  Up Next
-                </div>
-              )}
-              <button 
-                onClick={() => setSelectedJob(job)}
-                className="mt-2 w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-2xl py-6 rounded-2xl flex justify-center items-center shadow-lg shadow-blue-200/50 transition-colors"
-              >
-                Open Job
-              </button>
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   };

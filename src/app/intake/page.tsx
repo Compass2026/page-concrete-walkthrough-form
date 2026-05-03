@@ -162,22 +162,40 @@ export default function IntakePage() {
   const onSubmit = async (data: IntakeFormValues) => {
     setSubmitting(true)
     try {
-      const { data: inserted, error } = await supabase.from('walkthroughs').insert([{
-        first_name:     data.first_name,
-        last_name:      data.last_name,
-        phone:          data.phone,
-        email:          data.email    || null,
-        street_address: data.street_address,
-        city:           data.city,
-        state:          data.state,
-        postal_code:    data.postal_code || null,
-        project_type:   data.project_type,
-        notes:          data.notes    || null,
-        status:         'pending',
-        project_details: {
-          assigned_owner: data.assigned_owner,
-          project_type:   data.project_type,
-        },
+      const { data: inserted, error } = await supabase.from('jobs').insert([{
+        // ── Granular name columns (new) ──────────────────────────
+        first_name:       data.first_name,
+        last_name:        data.last_name,
+        // ── Combined fallback (legacy compat) ────────────────────
+        client_name:      `${data.first_name} ${data.last_name}`.trim(),
+
+        // ── Contact ──────────────────────────────────────────────
+        phone:            data.phone,
+        email:            data.email || null,
+
+        // ── Granular address columns (new) ───────────────────────
+        street_address:   data.street_address,
+        city:             data.city,
+        state:            data.state,
+        postal_code:      data.postal_code || null,
+        // ── Combined fallback (legacy compat) ────────────────────
+        location_address: [
+          data.street_address,
+          data.city,
+          data.state,
+          data.postal_code,
+        ].filter(Boolean).join(', '),
+
+        // ── Project / job type ───────────────────────────────────
+        job_title:        data.project_type,   // surfaces in job hub title
+        project_type:     data.project_type,
+
+        // ── Sales pipeline ───────────────────────────────────────
+        status:           'New Lead',           // forced for pipeline drop-in
+
+        // ── Meta ─────────────────────────────────────────────────
+        notes:            data.notes || null,
+        assigned_owner:   data.assigned_owner,
       }]).select('id').single()
 
       if (error) throw new Error(error.message)
