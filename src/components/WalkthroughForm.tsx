@@ -182,12 +182,13 @@ function calcProgress(values: Partial<FormValues>): number {
 export default function WalkthroughForm() {
   const searchParams = useSearchParams()
   const recordId = searchParams.get('id')
+  const jobId = searchParams.get('jobId')
 
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [progress, setProgress] = useState(0)
-  const [initialLoading, setInitialLoading] = useState(!!recordId)
+  const [initialLoading, setInitialLoading] = useState(!!recordId || !!jobId)
 
   const {
     register, handleSubmit, watch, control, reset,
@@ -205,43 +206,91 @@ export default function WalkthroughForm() {
   const watchedValues = watch()
   const projectType = watchedValues.project_type
 
-  /* ── Pre-fill form when coming from Tech Inbox ──────────── */
+  /* ── Pre-fill form when coming from Tech Inbox or Job Hub ──────────── */
   useEffect(() => {
-    if (!recordId) return
+    if (!recordId && !jobId) return
     ;(async () => {
-      const { data, error } = await supabase
-        .from('walkthroughs')
-        .select(
-          'first_name, last_name, phone, email, address, street_address, city, state, country, postal_code, project_type'
-        )
-        .eq('id', recordId)
-        .single()
+      if (recordId) {
+        const { data, error } = await supabase
+          .from('walkthroughs')
+          .select(
+            'first_name, last_name, phone, email, address, street_address, city, state, country, postal_code, project_type'
+          )
+          .eq('id', recordId)
+          .single()
 
-      if (!error && data) {
-        reset({
-          first_name:           data.first_name        ?? '',
-          last_name:            data.last_name         ?? '',
-          phone:                data.phone             ?? '',
-          email:                data.email             ?? '',
-          address:              data.address           ?? '',
-          street_address:       data.street_address    ?? '',
-          city:                 data.city              ?? '',
-          state:                data.state             ?? '',
-          country:              data.country           || 'United States',
-          postal_code:          data.postal_code       ?? '',
-          project_type:         (data.project_type as FormValues['project_type']) ?? '',
-          // Keep spec fields at defaults — tech will fill them in
-          concrete_sqft: 0, fence_linear_feet: 0,
-          concrete_thickness: '', concrete_psi: '', concrete_demo: '',
-          fence_height_material: '', gate_details: '',
-          optional_addons: '', notes: '',
-          annotated_photos: [],
-        })
+        if (!error && data) {
+          reset({
+            first_name:           data.first_name        ?? '',
+            last_name:            data.last_name         ?? '',
+            phone:                data.phone             ?? '',
+            email:                data.email             ?? '',
+            address:              data.address           ?? '',
+            street_address:       data.street_address    ?? '',
+            city:                 data.city              ?? '',
+            state:                data.state             ?? '',
+            country:              data.country           || 'United States',
+            postal_code:          data.postal_code       ?? '',
+            project_type:         (data.project_type as FormValues['project_type']) ?? '',
+            // Keep spec fields at defaults — tech will fill them in
+            concrete_sqft: 0, fence_linear_feet: 0,
+            concrete_thickness: '', concrete_psi: '', concrete_demo: '',
+            fence_height_material: '', gate_details: '',
+            optional_addons: '', notes: '',
+            annotated_photos: [],
+          })
+        }
+      } else if (jobId) {
+        const { data, error } = await supabase
+          .from('jobs')
+          .select('first_name, last_name, street_address, city, state, postal_code, client_name, location_address')
+          .eq('id', jobId)
+          .single()
+
+        if (!error && data) {
+          let firstName = data.first_name || '';
+          let lastName = data.last_name || '';
+          
+          if (!firstName && !lastName && data.client_name) {
+            const nameParts = data.client_name.trim().split(' ');
+            if (nameParts.length > 1) {
+              firstName = nameParts[0];
+              lastName = nameParts.slice(1).join(' ');
+            } else {
+              firstName = nameParts[0];
+            }
+          }
+
+          let streetAddress = data.street_address || '';
+          if (!streetAddress && data.location_address) {
+            streetAddress = data.location_address;
+          }
+
+          reset({
+            first_name:           firstName,
+            last_name:            lastName,
+            phone:                '',
+            email:                '',
+            address:              '',
+            street_address:       streetAddress,
+            city:                 data.city ?? '',
+            state:                data.state ?? '',
+            country:              'United States',
+            postal_code:          data.postal_code ?? '',
+            project_type:         '',
+            // Keep spec fields at defaults
+            concrete_sqft: 0, fence_linear_feet: 0,
+            concrete_thickness: '', concrete_psi: '', concrete_demo: '',
+            fence_height_material: '', gate_details: '',
+            optional_addons: '', notes: '',
+            annotated_photos: [],
+          })
+        }
       }
       setInitialLoading(false)
     })()
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recordId])
+  }, [recordId, jobId])
 
   useEffect(() => {
     setProgress(calcProgress(watchedValues))
@@ -300,6 +349,10 @@ export default function WalkthroughForm() {
         annotated_photos,
         original_photos,
         status:           'completed',
+      }
+
+      if (jobId) {
+        payload.job_id = jobId;
       }
 
       let dbError

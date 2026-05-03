@@ -180,6 +180,7 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
                 const isCompleted = stageIndex < currentStageIndex;
                 const isCurrent = stageIndex === currentStageIndex;
                 const isUpcoming = stageIndex > currentStageIndex;
+                const isActiveOrCompleted = stageIndex <= currentStageIndex;
 
                 return (
                   <React.Fragment key={stage}>
@@ -190,8 +191,7 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
                     >
                       <div className={`
                         w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all shadow-sm
-                        ${isCompleted ? 'bg-green-500 text-white border-2 border-green-500 hover:bg-green-600' : ''}
-                        ${isCurrent ? 'bg-blue-600 text-white ring-4 ring-blue-50 scale-110' : ''}
+                        ${isActiveOrCompleted ? 'bg-blue-600 text-white border-2 border-blue-600 hover:bg-blue-700' : ''}
                         ${isUpcoming ? 'bg-white text-gray-400 border-2 border-gray-200 hover:border-gray-300 hover:text-gray-600' : ''}
                       `}>
                         {isCompleted ? (
@@ -202,8 +202,7 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
                       </div>
                       <span className={`
                         text-[10px] uppercase tracking-wider font-bold whitespace-nowrap transition-colors mt-1
-                        ${isCompleted ? 'text-green-600' : ''}
-                        ${isCurrent ? 'text-blue-700' : ''}
+                        ${isActiveOrCompleted ? 'text-blue-600' : ''}
                         ${isUpcoming ? 'text-gray-400 group-hover:text-gray-600' : ''}
                       `}>
                         {stage}
@@ -213,7 +212,7 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
                     {/* Connecting Line */}
                     {index < PIPELINE_STAGES.length - 1 && (
                       <div className={`h-[2px] w-8 sm:w-10 md:w-12 mx-1 transition-colors ${
-                        isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                        isCompleted ? 'bg-blue-600' : 'bg-gray-200'
                       }`} />
                     )}
                   </React.Fragment>
