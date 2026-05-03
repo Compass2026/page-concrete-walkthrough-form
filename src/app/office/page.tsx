@@ -31,6 +31,10 @@ interface DatabaseJob {
   location_address: string
   status: JobStage
   amount?: string
+  first_name?: string
+  last_name?: string
+  street_address?: string
+  city?: string
 }
 
 const STAGES: JobStage[] = ['Lead', 'Walkthrough', 'Quoted', 'Scheduled', 'In Progress', 'Invoiced']
@@ -47,7 +51,7 @@ export default function OfficeDashboard() {
     async function fetchData() {
       const { data: jobsData } = await supabase
         .from('jobs')
-        .select('id, job_title, client_name, location_address, status')
+        .select('id, job_title, client_name, location_address, status, first_name, last_name, street_address, city')
         .order('created_at', { ascending: false })
       
       if (jobsData) {
@@ -297,10 +301,17 @@ export default function OfficeDashboard() {
                         <tr key={job.id} className="hover:bg-gray-50/50 transition-colors group">
                           {/* Details Column */}
                           <td className="py-6 px-6 align-top">
-                            <div className="font-semibold text-gray-900 text-sm">{job.client_name}</div>
+                            <div className="font-semibold text-gray-900 text-sm">
+                              {job.first_name ? `${job.first_name} ${job.last_name || ''}`.trim() : job.client_name}
+                            </div>
                             <div className="text-xs text-gray-500 mt-1 flex flex-col gap-0.5">
-                              <span className="truncate max-w-[250px]" title={job.location_address || ''}>{job.location_address}</span>
-                              <span className="text-gray-400">{job.job_title}</span>
+                              <span className="text-gray-500">{job.job_title}</span>
+                              <span 
+                                className="truncate max-w-[250px] text-[11px] text-gray-400" 
+                                title={job.street_address ? [job.street_address, job.city].filter(Boolean).join(', ') : job.location_address || ''}
+                              >
+                                {job.street_address ? [job.street_address, job.city].filter(Boolean).join(', ') : job.location_address}
+                              </span>
                             </div>
                           </td>
                           

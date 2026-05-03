@@ -3,7 +3,9 @@
 import React, { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
-import { ArrowLeft, FileText, Camera, Clock, Plus } from 'lucide-react';
+import { ArrowLeft, FileText, Camera, Clock, Plus, Check } from 'lucide-react';
+
+const PIPELINE_STAGES = ['Lead', 'Walkthrough', 'Quoted', 'Scheduled', 'In Progress', 'Invoiced', 'Closed'];
 
 export default function JobDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -78,6 +80,25 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
     }
   };
 
+  const handleStatusUpdate = async (newStatus: string) => {
+    const oldStatus = job.status;
+    
+    // Optimistic UI update
+    setJob((prev: any) => ({ ...prev, status: newStatus }));
+
+    const { error } = await supabase
+      .from('jobs')
+      .update({ status: newStatus })
+      .eq('id', id);
+
+    if (error) {
+      console.error("Failed to update status:", error);
+      // Revert on error
+      setJob((prev: any) => ({ ...prev, status: oldStatus }));
+      alert("Failed to update job status. Please try again.");
+    }
+  };
+
   const formatTimestamp = (dateString: string) => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -114,6 +135,8 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
     );
   }
 
+  const currentStageIndex = PIPELINE_STAGES.indexOf(job.status || 'Lead');
+
   return (
     <div className="min-h-screen bg-gray-50 p-6 md:p-10 font-sans">
       <div className="max-w-6xl mx-auto space-y-8">
@@ -130,13 +153,10 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
         </div>
 
         {/* Premium Header Section */}
-        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div>
+        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-200 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8">
+          <div className="flex-1">
             <div className="flex items-center gap-4 mb-3">
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">{job.job_title}</h1>
-              <span className="px-3.5 py-1.5 bg-blue-50 text-blue-700 text-xs font-bold uppercase tracking-wider rounded-full border border-blue-100">
-                {job.status}
-              </span>
             </div>
             
             <div className="flex flex-col sm:flex-row sm:items-center text-gray-500 gap-3 sm:gap-6 text-sm md:text-base">
@@ -152,11 +172,54 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
             </div>
           </div>
           
-          {/* Optional actions placeholder in header */}
-          <div className="shrink-0 flex gap-3">
-            <button className="flex items-center justify-center px-5 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 text-gray-700 rounded-xl font-medium transition-all shadow-sm text-sm">
-              Edit Job
-            </button>
+          {/* Pipeline Stepper */}
+          <div className="w-full xl:w-auto overflow-x-auto pb-4 xl:pb-0 -mx-2 px-2 xl:mx-0 xl:px-0">
+            <div className="flex items-center min-w-max pt-2">
+              {PIPELINE_STAGES.map((stage, index) => {
+                const stageIndex = index;
+                const isCompleted = stageIndex < currentStageIndex;
+                const isCurrent = stageIndex === currentStageIndex;
+                const isUpcoming = stageIndex > currentStageIndex;
+
+                return (
+                  <React.Fragment key={stage}>
+                    {/* Node */}
+                    <button 
+                      onClick={() => handleStatusUpdate(stage)}
+                      className={`relative flex flex-col items-center gap-2 group focus:outline-none shrink-0 ${isCurrent ? 'z-10' : ''}`}
+                    >
+                      <div className={`
+                        w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all shadow-sm
+                        ${isCompleted ? 'bg-green-500 text-white border-2 border-green-500 hover:bg-green-600' : ''}
+                        ${isCurrent ? 'bg-blue-600 text-white ring-4 ring-blue-50 scale-110' : ''}
+                        ${isUpcoming ? 'bg-white text-gray-400 border-2 border-gray-200 hover:border-gray-300 hover:text-gray-600' : ''}
+                      `}>
+                        {isCompleted ? (
+                          <Check size={16} strokeWidth={3} />
+                        ) : (
+                          index + 1
+                        )}
+                      </div>
+                      <span className={`
+                        text-[10px] uppercase tracking-wider font-bold whitespace-nowrap transition-colors mt-1
+                        ${isCompleted ? 'text-green-600' : ''}
+                        ${isCurrent ? 'text-blue-700' : ''}
+                        ${isUpcoming ? 'text-gray-400 group-hover:text-gray-600' : ''}
+                      `}>
+                        {stage}
+                      </span>
+                    </button>
+                    
+                    {/* Connecting Line */}
+                    {index < PIPELINE_STAGES.length - 1 && (
+                      <div className={`h-[2px] w-8 sm:w-10 md:w-12 mx-1 transition-colors ${
+                        isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                      }`} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
           </div>
         </div>
 

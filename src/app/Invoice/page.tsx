@@ -144,6 +144,7 @@ function InvoiceContent() {
         .from('invoices')
         .insert([
           {
+            job_id: jobId || null,
             first_name: clientFirstName,
             last_name: clientLastName,
             address: combinedAddress,
