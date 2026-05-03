@@ -7,7 +7,7 @@ import {
   FileText, PhoneCall, CheckCircle2, ChevronRight 
 } from 'lucide-react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabaseClient';
+import { supabase } from '@/lib/supabase';
 
 interface DatabaseJob {
   id: number;
@@ -29,7 +29,7 @@ export default function CrewDashboard() {
 
   useEffect(() => {
     const fetchJobs = async () => {
-      const supabase = createClient();
+
       const { data, error } = await supabase
         .from('jobs')
         .select('id, first_name, last_name, client_name, street_address, city, location_address, title, status')

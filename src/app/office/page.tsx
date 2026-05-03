@@ -38,7 +38,6 @@ interface DatabaseJob {
   city?: string | null
 }
 
-const STAGES: JobStage[] = ['Lead', 'Walkthrough', 'Quoted', 'Scheduled', 'In Progress', 'Invoiced']
 
 export default function OfficeDashboard() {
   const [jobs, setJobs] = useState<DatabaseJob[]>([])
@@ -282,7 +281,7 @@ export default function OfficeDashboard() {
                     <div key={job.id} className="bg-white rounded-xl shadow-sm border border-red-200 p-5 flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden">
                       <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
                       <div>
-                        <h3 className="font-bold text-gray-900 text-base truncate" title={job.first_name ? `${job.first_name} ${job.last_name || ''}`.trim() : job.client_name}>
+                        <h3 className="font-bold text-gray-900 text-base truncate" title={job.first_name ? `${job.first_name} ${job.last_name || ''}`.trim() : job.client_name ?? undefined}>
                           {job.first_name ? `${job.first_name} ${job.last_name || ''}`.trim() : job.client_name}
                         </h3>
                         <p className="text-sm text-gray-500 mt-1 truncate" title={job.job_title}>{job.job_title}</p>
@@ -340,26 +339,26 @@ export default function OfficeDashboard() {
                       return (
                         <tr key={job.id} className="hover:bg-gray-50/50 transition-colors group">
                           {/* Details Column */}
-                         <td className="py-6 px-6 align-top">
-                             {(() => {
-                               const displayName = [job.first_name, job.last_name].filter(Boolean).join(' ') || job.client_name || 'Unknown Client';
-                               const displayAddress = [job.street_address, job.city].filter(Boolean).join(', ') || job.location_address || 'No address on file';
-                               return (
-                                 <>
-                                   <div className="font-semibold text-gray-900 text-sm">{displayName}</div>
-                                   <div className="text-xs text-gray-500 mt-1 flex flex-col gap-0.5">
-                                     <span className="text-gray-500">{job.job_title}</span>
-                                     <span
-                                       className="truncate max-w-[250px] text-[11px] text-gray-400"
-                                       title={displayAddress}
-                                     >
-                                       {displayAddress}
-                                     </span>
-                                   </div>
-                                 </>
-                               );
-                             })()}
-                           </td>
+                          <td className="py-6 px-6 align-top">
+                            {(() => {
+                              const displayName = [job.first_name, job.last_name].filter(Boolean).join(' ') || job.client_name || 'Unknown Client';
+                              const displayAddress = [job.street_address, job.city].filter(Boolean).join(', ') || job.location_address || 'No address on file';
+                              return (
+                                <>
+                                  <div className="font-semibold text-gray-900 text-sm">{displayName}</div>
+                                  <div className="text-xs text-gray-500 mt-1 flex flex-col gap-0.5">
+                                    <span className="text-gray-500">{job.job_title}</span>
+                                    <span
+                                      className="truncate max-w-[250px] text-[11px] text-gray-400"
+                                      title={displayAddress}
+                                    >
+                                      {displayAddress}
+                                    </span>
+                                  </div>
+                                </>
+                              );
+                            })()}
+                          </td>
 
                           {/* Amount Column */}
                           <td className="py-6 px-6 align-top">
