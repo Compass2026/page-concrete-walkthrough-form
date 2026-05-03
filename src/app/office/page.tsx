@@ -2,13 +2,13 @@
 
 import React, { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { 
-  LayoutDashboard, 
-  Briefcase, 
-  FileText, 
-  Settings, 
-  Search, 
-  Bell, 
+import {
+  LayoutDashboard,
+  Briefcase,
+  FileText,
+  Settings,
+  Search,
+  Bell,
   User,
   Check,
   DollarSign,
@@ -56,11 +56,11 @@ export default function OfficeDashboard() {
         .from('jobs')
         .select('id, job_title, client_name, location_address, status, first_name, last_name, street_address, city')
         .order('created_at', { ascending: false })
-      
+
       if (jobsData) {
         const fetchedJobs = jobsData as DatabaseJob[]
         setJobs(fetchedJobs)
-        
+
         const activeCount = fetchedJobs.filter(
           j => j.status?.toLowerCase() !== 'closed' && j.status?.toLowerCase() !== 'invoiced'
         ).length
@@ -85,7 +85,7 @@ export default function OfficeDashboard() {
 
       setLoading(false)
     }
-    
+
     fetchData()
   }, [])
 
@@ -103,7 +103,7 @@ export default function OfficeDashboard() {
           </div>
           <span className="font-semibold text-lg tracking-wide text-white">Page Concrete</span>
         </div>
-        
+
         <nav className="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto">
           <a href="#" className="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors group">
             <LayoutDashboard size={18} className="mr-3 group-hover:text-blue-400 transition-colors" />
@@ -146,7 +146,7 @@ export default function OfficeDashboard() {
             <span className="font-medium text-sm">Quick Invoice</span>
           </a>
         </nav>
-        
+
         <div className="p-4 border-t border-slate-800">
           <div className="flex items-center px-4 py-3 text-xs text-slate-500">
             <span>© 2026 Page Concrete</span>
@@ -161,9 +161,9 @@ export default function OfficeDashboard() {
           <div className="flex items-center w-96">
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="Search jobs, clients, or invoices..." 
+              <input
+                type="text"
+                placeholder="Search jobs, clients, or invoices..."
                 className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all outline-none"
               />
             </div>
@@ -288,8 +288,8 @@ export default function OfficeDashboard() {
                         <p className="text-sm text-gray-500 mt-1 truncate" title={job.job_title}>{job.job_title}</p>
                       </div>
                       <div className="mt-5">
-                        <a 
-                          href={`/proposal/new?jobId=${job.id}`} 
+                        <a
+                          href={`/proposal/new?jobId=${job.id}`}
                           className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-sm"
                         >
                           Build Proposal
@@ -334,7 +334,7 @@ export default function OfficeDashboard() {
                       </tr>
                     ) : jobs.map((job) => {
                       const currentStageIndex = STAGES.indexOf(job.status);
-                      
+
                       return (
                         <tr key={job.id} className="hover:bg-gray-50/50 transition-colors group">
                           {/* Details Column */}
@@ -344,20 +344,20 @@ export default function OfficeDashboard() {
                             </div>
                             <div className="text-xs text-gray-500 mt-1 flex flex-col gap-0.5">
                               <span className="text-gray-500">{job.job_title}</span>
-                              <span 
-                                className="truncate max-w-[250px] text-[11px] text-gray-400" 
+                              <span
+                                className="truncate max-w-[250px] text-[11px] text-gray-400"
                                 title={job.street_address ? [job.street_address, job.city].filter(Boolean).join(', ') : job.location_address || ''}
                               >
                                 {job.street_address ? [job.street_address, job.city].filter(Boolean).join(', ') : job.location_address}
                               </span>
                             </div>
                           </td>
-                          
+
                           {/* Amount Column */}
                           <td className="py-6 px-6 align-top">
                             <div className="font-medium text-gray-700 text-sm bg-gray-100 inline-flex px-2 py-1 rounded-md">{job.amount || 'TBD'}</div>
                           </td>
-                          
+
                           {/* Pipeline Column */}
                           <td className="py-6 px-6">
                             <div className="flex items-center w-full max-w-[500px]">
@@ -365,7 +365,7 @@ export default function OfficeDashboard() {
                                 const isCompleted = index < currentStageIndex;
                                 const isCurrent = index === currentStageIndex;
                                 const isFuture = index > currentStageIndex;
-                                
+
                                 return (
                                   <React.Fragment key={stage}>
                                     <div className="relative flex flex-col items-center group/step shrink-0">
@@ -378,7 +378,7 @@ export default function OfficeDashboard() {
                                       `}>
                                         {isCompleted ? <Check size={12} strokeWidth={3} /> : (index + 1)}
                                       </div>
-                                      
+
                                       {/* Label */}
                                       <div className={`
                                         absolute top-8 text-[10px] font-medium text-center w-24 -ml-12 left-1/2 transition-colors
@@ -389,7 +389,7 @@ export default function OfficeDashboard() {
                                         {stage}
                                       </div>
                                     </div>
-                                    
+
                                     {/* Connector Line */}
                                     {index < STAGES.length - 1 && (
                                       <div className="flex-1 h-[2px] mx-1.5 transition-all duration-300 bg-gray-200 rounded-full relative overflow-hidden">
@@ -402,7 +402,7 @@ export default function OfficeDashboard() {
                             </div>
                             <div className="h-5"></div> {/* Spacer to accommodate absolute positioned labels */}
                           </td>
-                          
+
                           <td className="py-6 px-6 text-right align-top">
                             <a href={`/office/jobs/${job.id}`} className="inline-block text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-md transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
                               View
