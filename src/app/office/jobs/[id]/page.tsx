@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { ArrowLeft, FileText, Camera, Clock, Plus, Check } from 'lucide-react';
 
-const PIPELINE_STAGES = ['Lead', 'Walkthrough', 'Quoted', 'Scheduled', 'In Progress', 'Invoiced', 'Closed'];
+const salesStages = ['New Lead', 'Appointment Set', 'Proposal Needed', 'Proposal Sent', 'Contract Signed/Won'];
+const fulfillmentStages = ['Deposit Received', 'Pending Start Date', 'Work Order Sent', 'Project in Progress', 'Project Complete', 'Invoice Sent', 'Paid/Closed'];
 
 export default function JobDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -135,7 +136,9 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
     );
   }
 
-  const currentStageIndex = PIPELINE_STAGES.indexOf(job.status || 'Lead');
+  const combinedStages = [...salesStages, ...fulfillmentStages];
+  const normalizedStatus = job.status === 'Lead' ? 'New Lead' : (job.status || 'New Lead');
+  const currentStageAbsoluteIndex = Math.max(0, combinedStages.indexOf(normalizedStatus));
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 md:p-10 font-sans">
@@ -173,52 +176,108 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
           </div>
           
           {/* Pipeline Stepper */}
-          <div className="w-full xl:w-auto overflow-x-auto pb-4 xl:pb-0 -mx-2 px-2 xl:mx-0 xl:px-0">
-            <div className="flex items-center min-w-max pt-2">
-              {PIPELINE_STAGES.map((stage, index) => {
-                const stageIndex = index;
-                const isCompleted = stageIndex < currentStageIndex;
-                const isCurrent = stageIndex === currentStageIndex;
-                const isUpcoming = stageIndex > currentStageIndex;
-                const isActiveOrCompleted = stageIndex <= currentStageIndex;
+          <div className="w-full xl:w-auto overflow-x-auto pb-4 xl:pb-0 -mx-2 px-2 xl:mx-0 xl:px-0 flex flex-col gap-6">
+            
+            {/* Sales Pipeline */}
+            <div>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Sales Pipeline</div>
+              <div className="flex items-center min-w-max pt-2">
+                {salesStages.map((stage, index) => {
+                  const stageAbsoluteIndex = combinedStages.indexOf(stage);
+                  const isCompleted = stageAbsoluteIndex < currentStageAbsoluteIndex;
+                  const isCurrent = stageAbsoluteIndex === currentStageAbsoluteIndex;
+                  const isUpcoming = stageAbsoluteIndex > currentStageAbsoluteIndex;
+                  const isActiveOrCompleted = stageAbsoluteIndex <= currentStageAbsoluteIndex;
 
-                return (
-                  <React.Fragment key={stage}>
-                    {/* Node */}
-                    <button 
-                      onClick={() => handleStatusUpdate(stage)}
-                      className={`relative flex flex-col items-center gap-2 group focus:outline-none shrink-0 ${isCurrent ? 'z-10' : ''}`}
-                    >
-                      <div className={`
-                        w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all shadow-sm
-                        ${isActiveOrCompleted ? 'bg-blue-600 text-white border-2 border-blue-600 hover:bg-blue-700' : ''}
-                        ${isUpcoming ? 'bg-white text-gray-400 border-2 border-gray-200 hover:border-gray-300 hover:text-gray-600' : ''}
-                      `}>
-                        {isCompleted ? (
-                          <Check size={16} strokeWidth={3} />
-                        ) : (
-                          index + 1
-                        )}
-                      </div>
-                      <span className={`
-                        text-[10px] uppercase tracking-wider font-bold whitespace-nowrap transition-colors mt-1
-                        ${isActiveOrCompleted ? 'text-blue-600' : ''}
-                        ${isUpcoming ? 'text-gray-400 group-hover:text-gray-600' : ''}
-                      `}>
-                        {stage}
-                      </span>
-                    </button>
-                    
-                    {/* Connecting Line */}
-                    {index < PIPELINE_STAGES.length - 1 && (
-                      <div className={`h-[2px] w-8 sm:w-10 md:w-12 mx-1 transition-colors ${
-                        isCompleted ? 'bg-blue-600' : 'bg-gray-200'
-                      }`} />
-                    )}
-                  </React.Fragment>
-                );
-              })}
+                  return (
+                    <React.Fragment key={stage}>
+                      {/* Node */}
+                      <button 
+                        onClick={() => handleStatusUpdate(stage)}
+                        className={`relative flex flex-col items-center gap-2 group focus:outline-none shrink-0 ${isCurrent ? 'z-10' : ''}`}
+                      >
+                        <div className={`
+                          w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all shadow-sm
+                          ${isActiveOrCompleted ? 'bg-blue-600 text-white border-2 border-blue-600 hover:bg-blue-700' : ''}
+                          ${isUpcoming ? 'bg-white text-gray-400 border-2 border-gray-200 hover:border-gray-300 hover:text-gray-600' : ''}
+                        `}>
+                          {isCompleted ? (
+                            <Check size={16} strokeWidth={3} />
+                          ) : (
+                            index + 1
+                          )}
+                        </div>
+                        <span className={`
+                          text-[10px] uppercase tracking-wider font-bold whitespace-nowrap transition-colors mt-1
+                          ${isActiveOrCompleted ? 'text-blue-600' : ''}
+                          ${isUpcoming ? 'text-gray-400 group-hover:text-gray-600' : ''}
+                        `}>
+                          {stage}
+                        </span>
+                      </button>
+                      
+                      {/* Connecting Line */}
+                      {index < salesStages.length - 1 && (
+                        <div className={`h-[2px] w-8 sm:w-10 md:w-12 mx-1 transition-colors ${
+                          isCompleted ? 'bg-blue-600' : 'bg-gray-200'
+                        }`} />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
             </div>
+
+            {/* Fulfillment Pipeline */}
+            <div>
+              <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Fulfillment Pipeline</div>
+              <div className="flex items-center min-w-max pt-2">
+                {fulfillmentStages.map((stage, index) => {
+                  const stageAbsoluteIndex = combinedStages.indexOf(stage);
+                  const isCompleted = stageAbsoluteIndex < currentStageAbsoluteIndex;
+                  const isCurrent = stageAbsoluteIndex === currentStageAbsoluteIndex;
+                  const isUpcoming = stageAbsoluteIndex > currentStageAbsoluteIndex;
+                  const isActiveOrCompleted = stageAbsoluteIndex <= currentStageAbsoluteIndex;
+
+                  return (
+                    <React.Fragment key={stage}>
+                      {/* Node */}
+                      <button 
+                        onClick={() => handleStatusUpdate(stage)}
+                        className={`relative flex flex-col items-center gap-2 group focus:outline-none shrink-0 ${isCurrent ? 'z-10' : ''}`}
+                      >
+                        <div className={`
+                          w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-all shadow-sm
+                          ${isActiveOrCompleted ? 'bg-blue-600 text-white border-2 border-blue-600 hover:bg-blue-700' : ''}
+                          ${isUpcoming ? 'bg-white text-gray-400 border-2 border-gray-200 hover:border-gray-300 hover:text-gray-600' : ''}
+                        `}>
+                          {isCompleted ? (
+                            <Check size={16} strokeWidth={3} />
+                          ) : (
+                            index + 1
+                          )}
+                        </div>
+                        <span className={`
+                          text-[10px] uppercase tracking-wider font-bold whitespace-nowrap transition-colors mt-1
+                          ${isActiveOrCompleted ? 'text-blue-600' : ''}
+                          ${isUpcoming ? 'text-gray-400 group-hover:text-gray-600' : ''}
+                        `}>
+                          {stage}
+                        </span>
+                      </button>
+                      
+                      {/* Connecting Line */}
+                      {index < fulfillmentStages.length - 1 && (
+                        <div className={`h-[2px] w-8 sm:w-10 md:w-12 mx-1 transition-colors ${
+                          isCompleted ? 'bg-blue-600' : 'bg-gray-200'
+                        }`} />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            </div>
+
           </div>
         </div>
 
