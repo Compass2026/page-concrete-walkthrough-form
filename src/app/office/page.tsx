@@ -28,14 +28,14 @@ type JobStage = 'Lead' | 'Walkthrough' | 'Proposal Needed' | 'Quoted' | 'Schedul
 interface DatabaseJob {
   id: string
   job_title: string
-  client_name: string
-  location_address: string
+  client_name: string | null
+  location_address: string | null
   status: JobStage
   amount?: string
-  first_name?: string
-  last_name?: string
-  street_address?: string
-  city?: string
+  first_name?: string | null
+  last_name?: string | null
+  street_address?: string | null
+  city?: string | null
 }
 
 const STAGES: JobStage[] = ['Lead', 'Walkthrough', 'Quoted', 'Scheduled', 'In Progress', 'Invoiced']
@@ -340,20 +340,26 @@ export default function OfficeDashboard() {
                       return (
                         <tr key={job.id} className="hover:bg-gray-50/50 transition-colors group">
                           {/* Details Column */}
-                          <td className="py-6 px-6 align-top">
-                            <div className="font-semibold text-gray-900 text-sm">
-                              {job.first_name ? `${job.first_name} ${job.last_name || ''}`.trim() : job.client_name}
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1 flex flex-col gap-0.5">
-                              <span className="text-gray-500">{job.job_title}</span>
-                              <span
-                                className="truncate max-w-[250px] text-[11px] text-gray-400"
-                                title={job.street_address ? [job.street_address, job.city].filter(Boolean).join(', ') : job.location_address || ''}
-                              >
-                                {job.street_address ? [job.street_address, job.city].filter(Boolean).join(', ') : job.location_address}
-                              </span>
-                            </div>
-                          </td>
+                         <td className="py-6 px-6 align-top">
+                             {(() => {
+                               const displayName = [job.first_name, job.last_name].filter(Boolean).join(' ') || job.client_name || 'Unknown Client';
+                               const displayAddress = [job.street_address, job.city].filter(Boolean).join(', ') || job.location_address || 'No address on file';
+                               return (
+                                 <>
+                                   <div className="font-semibold text-gray-900 text-sm">{displayName}</div>
+                                   <div className="text-xs text-gray-500 mt-1 flex flex-col gap-0.5">
+                                     <span className="text-gray-500">{job.job_title}</span>
+                                     <span
+                                       className="truncate max-w-[250px] text-[11px] text-gray-400"
+                                       title={displayAddress}
+                                     >
+                                       {displayAddress}
+                                     </span>
+                                   </div>
+                                 </>
+                               );
+                             })()}
+                           </td>
 
                           {/* Amount Column */}
                           <td className="py-6 px-6 align-top">
