@@ -9,18 +9,18 @@ import type { AnnotatedPhoto } from './PhotoAnnotator'
 
 /* ── Constant choice arrays ────────────────────────────────── */
 const PROJECT_TYPES = [
-  { value: 'Concrete',  emoji: '🪨', label: 'Concrete' },
-  { value: 'Fencing',   emoji: '🔩', label: 'Fencing'  },
-  { value: 'Decking',   emoji: '🪵', label: 'Decking'  },
-  { value: 'Other',     emoji: '📋', label: 'Other'    },
+  { value: 'Concrete', emoji: '🪨', label: 'Concrete' },
+  { value: 'Fencing', emoji: '🔩', label: 'Fencing' },
+  { value: 'Decking', emoji: '🪵', label: 'Decking' },
+  { value: 'Other', emoji: '📋', label: 'Other' },
 ] as const
 
 const THICKNESS_OPTIONS = ['4"', '6"', 'Other'] as const
-const PSI_OPTIONS        = ['3500', '4000', '5000', 'Unsure'] as const
+const PSI_OPTIONS = ['3500', '4000', '5000', 'Unsure'] as const
 
 const DEMO_OPTIONS = [
-  { value: 'None',               icon: '✅', title: 'None',               desc: 'No demolition needed' },
-  { value: 'Dirt Excavation',    icon: '⛏️', title: 'Dirt Excavation',    desc: 'Soil / grading removal' },
+  { value: 'None', icon: '✅', title: 'None', desc: 'No demolition needed' },
+  { value: 'Dirt Excavation', icon: '⛏️', title: 'Dirt Excavation', desc: 'Soil / grading removal' },
   { value: 'Concrete Tear-out/Haul Away', icon: '🚛', title: 'Tear-out & Haul Away', desc: 'Remove existing concrete' },
 ] as const
 
@@ -60,9 +60,9 @@ const REQUIRED = 'Required'
 
 /* ── Framer motion variants ────────────────────────────────── */
 const sectionVariants: Variants = {
-  hidden:  { opacity: 0, height: 0, y: -12, scale: 0.98 },
+  hidden: { opacity: 0, height: 0, y: -12, scale: 0.98 },
   visible: { opacity: 1, height: 'auto', y: 0, scale: 1, transition: { duration: 0.4, ease: 'easeOut' } },
-  exit:    { opacity: 0, height: 0, y: -8, scale: 0.98, transition: { duration: 0.25, ease: 'easeInOut' } },
+  exit: { opacity: 0, height: 0, y: -8, scale: 0.98, transition: { duration: 0.25, ease: 'easeInOut' } },
 }
 
 /* ── Field wrapper component ──────────────────────────────── */
@@ -209,87 +209,87 @@ export default function WalkthroughForm() {
   /* ── Pre-fill form when coming from Tech Inbox or Job Hub ──────────── */
   useEffect(() => {
     if (!recordId && !jobId) return
-    ;(async () => {
-      if (recordId) {
-        const { data, error } = await supabase
-          .from('walkthroughs')
-          .select(
-            'first_name, last_name, phone, email, address, street_address, city, state, country, postal_code, project_type'
-          )
-          .eq('id', recordId)
-          .single()
+      ; (async () => {
+        if (recordId) {
+          const { data, error } = await supabase
+            .from('walkthroughs')
+            .select(
+              'first_name, last_name, phone, email, address, street_address, city, state, country, postal_code, project_type'
+            )
+            .eq('id', recordId)
+            .single()
 
-        if (!error && data) {
-          reset({
-            first_name:           data.first_name        ?? '',
-            last_name:            data.last_name         ?? '',
-            phone:                data.phone             ?? '',
-            email:                data.email             ?? '',
-            address:              data.address           ?? '',
-            street_address:       data.street_address    ?? '',
-            city:                 data.city              ?? '',
-            state:                data.state             ?? '',
-            country:              data.country           || 'United States',
-            postal_code:          data.postal_code       ?? '',
-            project_type:         (data.project_type as FormValues['project_type']) ?? '',
-            // Keep spec fields at defaults — tech will fill them in
-            concrete_sqft: 0, fence_linear_feet: 0,
-            concrete_thickness: '', concrete_psi: '', concrete_demo: '',
-            fence_height_material: '', gate_details: '',
-            optional_addons: '', notes: '',
-            annotated_photos: [],
-          })
-        }
-      } else if (jobId) {
-        const { data, error } = await supabase
-          .from('jobs')
-          .select('first_name, last_name, street_address, city, state, postal_code, client_name, location_address')
-          .eq('id', jobId)
-          .single()
+          if (!error && data) {
+            reset({
+              first_name: data.first_name ?? '',
+              last_name: data.last_name ?? '',
+              phone: data.phone ?? '',
+              email: data.email ?? '',
+              address: data.address ?? '',
+              street_address: data.street_address ?? '',
+              city: data.city ?? '',
+              state: data.state ?? '',
+              country: data.country || 'United States',
+              postal_code: data.postal_code ?? '',
+              project_type: (data.project_type as FormValues['project_type']) ?? '',
+              // Keep spec fields at defaults — tech will fill them in
+              concrete_sqft: 0, fence_linear_feet: 0,
+              concrete_thickness: '', concrete_psi: '', concrete_demo: '',
+              fence_height_material: '', gate_details: '',
+              optional_addons: '', notes: '',
+              annotated_photos: [],
+            })
+          }
+        } else if (jobId) {
+          const { data, error } = await supabase
+            .from('jobs')
+            .select('first_name, last_name, phone, email, street_address, city, state, postal_code, client_name, location_address')
+            .eq('id', jobId)
+            .single()
 
-        if (!error && data) {
-          let firstName = data.first_name || '';
-          let lastName = data.last_name || '';
-          
-          if (!firstName && !lastName && data.client_name) {
-            const nameParts = data.client_name.trim().split(' ');
-            if (nameParts.length > 1) {
-              firstName = nameParts[0];
-              lastName = nameParts.slice(1).join(' ');
-            } else {
-              firstName = nameParts[0];
+          if (!error && data) {
+            let firstName = data.first_name || '';
+            let lastName = data.last_name || '';
+
+            if (!firstName && !lastName && data.client_name) {
+              const nameParts = data.client_name.trim().split(' ');
+              if (nameParts.length > 1) {
+                firstName = nameParts[0];
+                lastName = nameParts.slice(1).join(' ');
+              } else {
+                firstName = nameParts[0];
+              }
             }
-          }
 
-          let streetAddress = data.street_address || '';
-          if (!streetAddress && data.location_address) {
-            streetAddress = data.location_address;
-          }
+            let streetAddress = data.street_address || '';
+            if (!streetAddress && data.location_address) {
+              streetAddress = data.location_address;
+            }
 
-          reset({
-            first_name:           firstName,
-            last_name:            lastName,
-            phone:                '',
-            email:                '',
-            address:              '',
-            street_address:       streetAddress,
-            city:                 data.city ?? '',
-            state:                data.state ?? '',
-            country:              'United States',
-            postal_code:          data.postal_code ?? '',
-            project_type:         '',
-            // Keep spec fields at defaults
-            concrete_sqft: 0, fence_linear_feet: 0,
-            concrete_thickness: '', concrete_psi: '', concrete_demo: '',
-            fence_height_material: '', gate_details: '',
-            optional_addons: '', notes: '',
-            annotated_photos: [],
-          })
+            reset({
+              first_name: firstName,
+              last_name: lastName,
+              phone: data.phone ?? '',
+              email: data.email ?? '',
+              address: '',
+              street_address: streetAddress,
+              city: data.city ?? '',
+              state: data.state ?? '',
+              country: 'United States',
+              postal_code: data.postal_code ?? '',
+              project_type: '',
+              // Keep spec fields at defaults
+              concrete_sqft: 0, fence_linear_feet: 0,
+              concrete_thickness: '', concrete_psi: '', concrete_demo: '',
+              fence_height_material: '', gate_details: '',
+              optional_addons: '', notes: '',
+              annotated_photos: [],
+            })
+          }
         }
-      }
-      setInitialLoading(false)
-    })()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+        setInitialLoading(false)
+      })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recordId, jobId])
 
   useEffect(() => {
@@ -301,16 +301,16 @@ export default function WalkthroughForm() {
     const details: Record<string, unknown> = { project_type: data.project_type }
 
     if (data.project_type === 'Concrete') {
-      if (data.concrete_sqft)      details.concrete_sqft = data.concrete_sqft
+      if (data.concrete_sqft) details.concrete_sqft = data.concrete_sqft
       if (data.concrete_thickness) details.concrete_thickness = data.concrete_thickness
-      if (data.concrete_psi)       details.concrete_psi = data.concrete_psi
-      if (data.concrete_demo)      details.concrete_demo = data.concrete_demo
+      if (data.concrete_psi) details.concrete_psi = data.concrete_psi
+      if (data.concrete_demo) details.concrete_demo = data.concrete_demo
     }
 
     if (data.project_type === 'Fencing') {
-      if (data.fence_linear_feet)    details.fence_linear_feet = data.fence_linear_feet
+      if (data.fence_linear_feet) details.fence_linear_feet = data.fence_linear_feet
       if (data.fence_height_material) details.fence_height_material = data.fence_height_material
-      if (data.gate_details)         details.gate_details = data.gate_details
+      if (data.gate_details) details.gate_details = data.gate_details
     }
 
     if (data.optional_addons) details.optional_addons = data.optional_addons
@@ -333,22 +333,22 @@ export default function WalkthroughForm() {
       const project_details = buildProjectDetails(data)
 
       const payload: Record<string, unknown> = {
-        first_name:       data.first_name,
-        last_name:        data.last_name,
-        phone:            data.phone,
-        email:            data.email            || null,
-        address:          data.address          || null,
-        street_address:   data.street_address,
-        city:             data.city,
-        state:            data.state,
-        country:          data.country          || 'United States',
-        postal_code:      data.postal_code      || null,
-        project_type:     data.project_type,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        phone: data.phone,
+        email: data.email || null,
+        address: data.address || null,
+        street_address: data.street_address,
+        city: data.city,
+        state: data.state,
+        country: data.country || 'United States',
+        postal_code: data.postal_code || null,
+        project_type: data.project_type,
         project_details,
-        notes:            data.notes            || null,
+        notes: data.notes || null,
         annotated_photos,
         original_photos,
-        status:           'completed',
+        status: 'completed',
       }
 
       if (jobId) {
@@ -360,7 +360,7 @@ export default function WalkthroughForm() {
 
       if (recordId) {
         // UPDATE the existing pending row
-        ;({ error: dbError } = await supabase
+        ; ({ error: dbError } = await supabase
           .from('walkthroughs')
           .update(payload)
           .eq('id', recordId))
@@ -382,7 +382,7 @@ export default function WalkthroughForm() {
           .from('jobs')
           .update({ status: 'Proposal Needed' })
           .eq('id', jobId)
-        
+
         if (jobUpdateError) {
           console.error('Failed to update job status:', jobUpdateError.message)
         }
@@ -457,7 +457,7 @@ export default function WalkthroughForm() {
         noValidate
         style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
       >
-      <div className="form-body">
+        <div className="form-body">
 
           {/* ── 1. Contact Information ────────────────── */}
           <section className="form-card">
