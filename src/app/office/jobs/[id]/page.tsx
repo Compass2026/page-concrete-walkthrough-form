@@ -156,8 +156,8 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
         </div>
 
         {/* Premium Header Section */}
-        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-200 flex flex-col xl:flex-row justify-between items-start xl:items-center gap-8">
-          <div className="flex-1">
+        <div className="bg-white rounded-3xl p-8 shadow-sm border border-gray-200 flex flex-col gap-8">
+          <div className="w-full">
             <div className="flex items-center gap-4 mb-3">
               <h1 className="text-3xl md:text-4xl font-bold text-gray-900 tracking-tight">{job.job_title}</h1>
             </div>
@@ -176,7 +176,7 @@ export default function JobDetail({ params }: { params: Promise<{ id: string }> 
           </div>
           
           {/* Pipeline Stepper */}
-          <div className="w-full xl:w-auto overflow-x-auto pb-4 xl:pb-0 -mx-2 px-2 xl:mx-0 xl:px-0 flex flex-col gap-6">
+          <div className="w-full overflow-x-auto pb-4 -mx-2 px-2 sm:mx-0 sm:px-0 flex flex-col gap-6">
             
             {/* Sales Pipeline */}
             <div>
