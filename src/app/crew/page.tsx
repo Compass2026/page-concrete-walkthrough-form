@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Home, MessageSquare, Wrench, UserCircle, MapPin, 
-  HardHat, Camera, ClipboardList, Package, ArrowLeft, 
-  FileText, PhoneCall, CheckCircle2, ChevronRight 
+import {
+  Home, MessageSquare, Wrench, UserCircle, MapPin,
+  HardHat, Camera, ClipboardList, Package, ArrowLeft,
+  FileText, PhoneCall, CheckCircle2, ChevronRight
 } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -23,7 +23,7 @@ interface DatabaseJob {
 
 export default function CrewDashboard() {
   const [activeTab, setActiveTab] = useState('jobs');
-  const [selectedJob, setSelectedJob] = useState<{id: number, client: string, address: string} | null>(null);
+  const [selectedJob, setSelectedJob] = useState<{ id: number, client: string, address: string } | null>(null);
   const [jobs, setJobs] = useState<DatabaseJob[]>([]);
   const [loadingJobs, setLoadingJobs] = useState(true);
 
@@ -48,13 +48,13 @@ export default function CrewDashboard() {
     if (selectedJob) {
       return (
         <div className="p-4 animate-in fade-in slide-in-from-right-4 duration-300">
-          <button 
+          <button
             onClick={() => setSelectedJob(null)}
             className="flex items-center text-slate-500 mb-6 font-medium text-lg h-14"
           >
             <ArrowLeft className="w-6 h-6 mr-2" /> Back to Schedule
           </button>
-          
+
           <div className="mb-6 bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
             <h2 className="text-3xl font-bold text-slate-900 mb-2">{selectedJob.client}</h2>
             <div className="flex items-center text-slate-500 text-xl">
@@ -72,32 +72,32 @@ export default function CrewDashboard() {
           </div>
 
           <h3 className="font-bold text-slate-800 text-2xl mb-4">Job Actions</h3>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <button className="bg-white border-2 border-slate-100 p-6 rounded-3xl shadow-sm flex flex-col items-center justify-center gap-4 active:bg-blue-50 transition-colors h-48">
               <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mb-2">
                 <Camera className="w-10 h-10" />
               </div>
-              <span className="font-bold text-slate-800 text-xl text-center leading-tight">Snap<br/>Photo</span>
+              <span className="font-bold text-slate-800 text-xl text-center leading-tight">Snap<br />Photo</span>
             </button>
             <button className="bg-white border-2 border-slate-100 p-6 rounded-3xl shadow-sm flex flex-col items-center justify-center gap-4 active:bg-emerald-50 transition-colors h-48">
               <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mb-2">
                 <ClipboardList className="w-10 h-10" />
               </div>
-              <span className="font-bold text-slate-800 text-xl text-center leading-tight">Job<br/>Notes</span>
+              <span className="font-bold text-slate-800 text-xl text-center leading-tight">Job<br />Notes</span>
             </button>
             <button className="bg-white border-2 border-slate-100 p-6 rounded-3xl shadow-sm flex flex-col items-center justify-center gap-4 active:bg-amber-50 transition-colors h-48">
               <div className="w-20 h-20 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mb-2">
                 <Package className="w-10 h-10" />
               </div>
-              <span className="font-bold text-slate-800 text-xl text-center leading-tight">Log<br/>Materials</span>
+              <span className="font-bold text-slate-800 text-xl text-center leading-tight">Log<br />Materials</span>
             </button>
             {/* Empty 4th slot to make the 2x2 grid look intentional */}
             <button className="bg-slate-100 border-2 border-slate-200 p-6 rounded-3xl flex flex-col items-center justify-center gap-4 h-48 opacity-50 active:bg-slate-200 transition-colors">
               <div className="w-20 h-20 bg-slate-200 text-slate-400 rounded-full flex items-center justify-center mb-2">
                 <CheckCircle2 className="w-10 h-10" />
               </div>
-              <span className="font-bold text-slate-500 text-xl text-center leading-tight">Complete<br/>Job</span>
+              <span className="font-bold text-slate-500 text-xl text-center leading-tight">Complete<br />Job</span>
             </button>
           </div>
         </div>
@@ -122,29 +122,22 @@ export default function CrewDashboard() {
         ) : (
           <div className="space-y-6">
             {jobs.map((job, index) => {
-              const clientName =
-                job.first_name || job.last_name
-                  ? `${job.first_name ?? ''} ${job.last_name ?? ''}`.trim()
-                  : job.client_name ?? 'Unknown Client';
+              const displayName = [job.first_name, job.last_name].filter(Boolean).join(' ') || job.client_name || 'Unknown Client';
+              const displayAddress = [job.street_address, job.city].filter(Boolean).join(', ') || job.location_address || 'No address on file';
 
-              const addressDisplay =
-                job.street_address
-                  ? `${job.street_address}, ${job.city ?? ''}`.replace(/, $/, '')
-                  : job.location_address ?? 'No address on file';
-
-              const jobForSelected = { id: job.id, client: clientName, address: addressDisplay };
+              const jobForSelected = { id: job.id, client: displayName, address: displayAddress };
 
               return (
                 <div key={job.id} className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="font-bold text-3xl text-slate-900 mb-2">{clientName}</h3>
+                      <h3 className="font-bold text-3xl text-slate-900 mb-2">{displayName}</h3>
                       {job.title && (
                         <p className="text-slate-500 text-base mb-1">{job.title}</p>
                       )}
                       <div className="flex items-center text-slate-500 text-xl">
                         <MapPin className="w-6 h-6 mr-2 flex-shrink-0 text-blue-500" />
-                        <span className="truncate">{addressDisplay}</span>
+                        <span className="truncate">{displayAddress}</span>
                       </div>
                     </div>
                   </div>
@@ -153,7 +146,7 @@ export default function CrewDashboard() {
                       Up Next
                     </div>
                   )}
-                  <button 
+                  <button
                     onClick={() => setSelectedJob(jobForSelected)}
                     className="mt-2 w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-2xl py-6 rounded-2xl flex justify-center items-center shadow-lg shadow-blue-200/50 transition-colors"
                   >
@@ -215,7 +208,7 @@ export default function CrewDashboard() {
     <div className="bg-black min-h-screen sm:py-8 sm:px-4">
       {/* Wrapper to simulate a mobile phone boundary on desktop */}
       <div className="max-w-md mx-auto min-h-screen sm:min-h-[850px] relative bg-slate-50 sm:rounded-[3rem] shadow-2xl overflow-hidden font-sans flex flex-col">
-        
+
         {/* Top Header */}
         <div className="bg-slate-900 text-white px-6 py-5 flex justify-between items-center shadow-md z-10 relative">
           <div>
@@ -236,7 +229,7 @@ export default function CrewDashboard() {
 
         {/* Bottom Tab Navigation */}
         <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-slate-200 pb-safe pt-3 px-2 flex justify-around shadow-[0_-10px_40px_rgba(0,0,0,0.08)] z-20 h-[100px]">
-          <button 
+          <button
             onClick={() => { setActiveTab('jobs'); setSelectedJob(null); }}
             className={`flex flex-col items-center justify-center w-full ${activeTab === 'jobs' ? 'text-blue-600' : 'text-slate-400'}`}
           >
@@ -245,8 +238,8 @@ export default function CrewDashboard() {
             </div>
             <span className={`text-sm ${activeTab === 'jobs' ? 'font-bold' : 'font-medium'}`}>My Jobs</span>
           </button>
-          
-          <button 
+
+          <button
             onClick={() => setActiveTab('inbox')}
             className={`flex flex-col items-center justify-center w-full ${activeTab === 'inbox' ? 'text-blue-600' : 'text-slate-400'}`}
           >
@@ -255,8 +248,8 @@ export default function CrewDashboard() {
             </div>
             <span className={`text-sm ${activeTab === 'inbox' ? 'font-bold' : 'font-medium'}`}>Inbox</span>
           </button>
-          
-          <button 
+
+          <button
             onClick={() => setActiveTab('tools')}
             className={`flex flex-col items-center justify-center w-full ${activeTab === 'tools' ? 'text-blue-600' : 'text-slate-400'}`}
           >

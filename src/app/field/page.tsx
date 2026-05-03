@@ -10,7 +10,10 @@ interface Walkthrough {
   id: string
   first_name: string | null
   last_name: string | null
-  address: string | null
+  client_name: string | null
+  street_address: string | null
+  city: string | null
+  location_address: string | null
   project_type: string | null
   assigned_owner: string | null
   created_at: string | null
@@ -18,11 +21,11 @@ interface Walkthrough {
 
 /* ── Project-type accent map ────────────────────────────── */
 const TYPE_ACCENT: Record<string, { bg: string; color: string; label: string }> = {
-  concrete:   { bg: '#EFF6FF', color: '#1D4ED8', label: 'Concrete' },
-  fencing:    { bg: '#F0FDF4', color: '#16A34A', label: 'Fencing' },
-  decking:    { bg: '#FFF7ED', color: '#C2410C', label: 'Decking' },
+  concrete: { bg: '#EFF6FF', color: '#1D4ED8', label: 'Concrete' },
+  fencing: { bg: '#F0FDF4', color: '#16A34A', label: 'Fencing' },
+  decking: { bg: '#FFF7ED', color: '#C2410C', label: 'Decking' },
   commercial: { bg: '#F5F3FF', color: '#7C3AED', label: 'Commercial' },
-  other:      { bg: '#F8FAFC', color: '#475569', label: 'Other' },
+  other: { bg: '#F8FAFC', color: '#475569', label: 'Other' },
 }
 function getTypeAccent(raw: string | null) {
   const key = (raw ?? '').toLowerCase().trim()
@@ -70,9 +73,8 @@ export default function FieldInboxPage() {
     setError(null)
 
     const { data, error: err } = await supabase
-      .from('walkthroughs')
-      .select('id, first_name, last_name, address, project_type, assigned_owner, created_at')
-      .eq('status', 'pending')
+      .from('jobs')
+      .select('id, first_name, last_name, client_name, street_address, city, location_address, project_type, assigned_owner, created_at')
       .order('created_at', { ascending: false })
 
     if (err) {
@@ -658,7 +660,8 @@ export default function FieldInboxPage() {
             <div className="fi-list" role="list">
               {filteredWalkthroughs.map(wt => {
                 const accent = getTypeAccent(wt.project_type)
-                const name = fullName(wt.first_name, wt.last_name)
+                const displayName = [wt.first_name, wt.last_name].filter(Boolean).join(' ') || wt.client_name || 'Unknown Client';
+                const displayAddress = [wt.street_address, wt.city].filter(Boolean).join(', ') || wt.location_address || 'No address on file';
                 const init = initials(wt.first_name, wt.last_name)
                 const ago = timeAgo(wt.created_at)
 
@@ -668,10 +671,10 @@ export default function FieldInboxPage() {
                     className="fi-card"
                     role="listitem"
                     id={`walkthrough-card-${wt.id}`}
-                    onClick={() => router.push(`/walkthrough-form?id=${wt.id}`)}
-                    aria-label={`Open walkthrough for ${name}`}
+                    onClick={() => router.push(`/walkthrough-form?jobId=${wt.id}`)}
+                    aria-label={`Open walkthrough for ${displayName}`}
                     tabIndex={0}
-                    onKeyDown={e => e.key === 'Enter' && router.push(`/walkthrough-form?id=${wt.id}`)}
+                    onKeyDown={e => e.key === 'Enter' && router.push(`/walkthrough-form?jobId=${wt.id}`)}
                   >
                     {/* accent bar */}
                     <div className="fi-card-bar" style={{ background: accent.color }} />
@@ -688,11 +691,11 @@ export default function FieldInboxPage() {
                     {/* body */}
                     <div className="fi-card-body">
                       <div className="fi-card-top">
-                        <div className="fi-card-name">{name}</div>
+                        <div className="fi-card-name">{displayName}</div>
                         {ago && <div className="fi-card-time">{ago}</div>}
                       </div>
                       <div className="fi-card-addr">
-                        {wt.address ?? <em style={{ color: '#94A3B8' }}>No address on file</em>}
+                        {displayAddress === 'No address on file' ? <em style={{ color: '#94A3B8' }}>No address on file</em> : displayAddress}
                       </div>
                       <div className="fi-card-meta">
                         <span
