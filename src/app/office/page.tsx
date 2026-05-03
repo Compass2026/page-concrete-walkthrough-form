@@ -333,7 +333,9 @@ export default function OfficeDashboard() {
                         </td>
                       </tr>
                     ) : jobs.map((job) => {
-                      const currentStageIndex = STAGES.indexOf(job.status);
+                      const salesStages = ['New Lead', 'Appointment Set', 'Proposal Needed', 'Proposal Sent', 'Contract Signed/Won'];
+                      const currentStageIndex = salesStages.indexOf(job.status);
+                      const isFulfillment = currentStageIndex === -1;
 
                       return (
                         <tr key={job.id} className="hover:bg-gray-50/50 transition-colors group">
@@ -361,10 +363,10 @@ export default function OfficeDashboard() {
                           {/* Pipeline Column */}
                           <td className="py-6 px-6">
                             <div className="flex items-center w-full max-w-[500px]">
-                              {STAGES.map((stage, index) => {
-                                const isCompleted = index < currentStageIndex;
-                                const isCurrent = index === currentStageIndex;
-                                const isFuture = index > currentStageIndex;
+                              {salesStages.map((stage, index) => {
+                                const isCompleted = isFulfillment || index < currentStageIndex;
+                                const isCurrent = !isFulfillment && index === currentStageIndex;
+                                const isFuture = !isFulfillment && index > currentStageIndex;
 
                                 return (
                                   <React.Fragment key={stage}>
@@ -372,7 +374,7 @@ export default function OfficeDashboard() {
                                       {/* Node */}
                                       <div className={`
                                         w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold z-10 transition-all duration-300
-                                        ${isCompleted ? 'bg-teal-500 text-white shadow-sm' : ''}
+                                        ${isCompleted ? 'bg-blue-600 text-white shadow-sm' : ''}
                                         ${isCurrent ? 'bg-blue-600 text-white ring-[3px] ring-blue-100 shadow-sm' : ''}
                                         ${isFuture ? 'bg-white border-[1.5px] border-gray-200 text-gray-400' : ''}
                                       `}>
@@ -382,7 +384,7 @@ export default function OfficeDashboard() {
                                       {/* Label */}
                                       <div className={`
                                         absolute top-8 text-[10px] font-medium text-center w-24 -ml-12 left-1/2 transition-colors
-                                        ${isCompleted ? 'text-teal-700' : ''}
+                                        ${isCompleted ? 'text-blue-700' : ''}
                                         ${isCurrent ? 'text-blue-700 font-bold' : ''}
                                         ${isFuture ? 'text-gray-400' : ''}
                                       `}>
@@ -391,9 +393,9 @@ export default function OfficeDashboard() {
                                     </div>
 
                                     {/* Connector Line */}
-                                    {index < STAGES.length - 1 && (
+                                    {index < salesStages.length - 1 && (
                                       <div className="flex-1 h-[2px] mx-1.5 transition-all duration-300 bg-gray-200 rounded-full relative overflow-hidden">
-                                        <div className={`absolute left-0 top-0 bottom-0 transition-all duration-500 ${isCompleted ? 'bg-teal-500 w-full' : 'w-0'}`}></div>
+                                        <div className={`absolute left-0 top-0 bottom-0 transition-all duration-500 ${isCompleted ? 'bg-blue-600 w-full' : 'w-0'}`}></div>
                                       </div>
                                     )}
                                   </React.Fragment>
