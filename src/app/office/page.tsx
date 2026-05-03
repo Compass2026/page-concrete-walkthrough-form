@@ -19,10 +19,11 @@ import {
   Inbox,
   ClipboardCheck,
   Receipt,
-  FileSignature
+  FileSignature,
+  AlertCircle
 } from 'lucide-react'
 
-type JobStage = 'Lead' | 'Walkthrough' | 'Quoted' | 'Scheduled' | 'In Progress' | 'Invoiced'
+type JobStage = 'Lead' | 'Walkthrough' | 'Proposal Needed' | 'Quoted' | 'Scheduled' | 'In Progress' | 'Invoiced' | string
 
 interface DatabaseJob {
   id: string
@@ -46,6 +47,8 @@ export default function OfficeDashboard() {
   const [ytdRevenue, setYtdRevenue] = useState(0)
   const [outstandingAR, setOutstandingAR] = useState(0)
   const [activeJobsCount, setActiveJobsCount] = useState(0)
+
+  const needsProposal = jobs.filter(job => job.status === 'Proposal Needed')
 
   useEffect(() => {
     async function fetchData() {
@@ -122,6 +125,10 @@ export default function OfficeDashboard() {
           <div className="pt-6 pb-2 px-4">
             <p className="text-xs font-semibold text-slate-500 tracking-wider">TOOLS</p>
           </div>
+          <a href="#" className="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors group">
+            <AlertCircle size={18} className="mr-3 group-hover:text-blue-400 transition-colors" />
+            <span className="font-medium text-sm">Awaiting Proposals</span>
+          </a>
           <a href="/intake" className="flex items-center px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white rounded-lg transition-colors group">
             <Inbox size={18} className="mr-3 group-hover:text-blue-400 transition-colors" />
             <span className="font-medium text-sm">Lead Intake</span>
@@ -262,6 +269,37 @@ export default function OfficeDashboard() {
                 </div>
               </div>
             </div>
+
+            {/* ACTION REQUIRED SECTION */}
+            {needsProposal.length > 0 && (
+              <div className="mb-8">
+                <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center">
+                  <AlertCircle size={20} className="mr-2 text-red-500" />
+                  Action Required: Proposals Needed
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {needsProposal.map(job => (
+                    <div key={job.id} className="bg-white rounded-xl shadow-sm border border-red-200 p-5 flex flex-col justify-between hover:shadow-md transition-shadow relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
+                      <div>
+                        <h3 className="font-bold text-gray-900 text-base truncate" title={job.first_name ? `${job.first_name} ${job.last_name || ''}`.trim() : job.client_name}>
+                          {job.first_name ? `${job.first_name} ${job.last_name || ''}`.trim() : job.client_name}
+                        </h3>
+                        <p className="text-sm text-gray-500 mt-1 truncate" title={job.job_title}>{job.job_title}</p>
+                      </div>
+                      <div className="mt-5">
+                        <a 
+                          href={`/proposal/new?jobId=${job.id}`} 
+                          className="block w-full text-center bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-sm"
+                        >
+                          Build Proposal
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* PIPELINE TABLE CARD */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">

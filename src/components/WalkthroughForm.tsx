@@ -376,6 +376,18 @@ export default function WalkthroughForm() {
       }
       if (dbError) throw new Error(dbError.message)
 
+      // Automatically advance the job status in the master file
+      if (jobId) {
+        const { error: jobUpdateError } = await supabase
+          .from('jobs')
+          .update({ status: 'Proposal Needed' })
+          .eq('id', jobId)
+        
+        if (jobUpdateError) {
+          console.error('Failed to update job status:', jobUpdateError.message)
+        }
+      }
+
       // Fire GoHighLevel webhook (non-blocking)
       const webhookUrl = process.env.NEXT_PUBLIC_GHL_WALKTHROUGH_WEBHOOK_URL
       if (webhookUrl) {
