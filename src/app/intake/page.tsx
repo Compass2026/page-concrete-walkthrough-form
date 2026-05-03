@@ -12,19 +12,19 @@ import {
 
 /* ─── US States ─────────────────────────────────────────────── */
 const US_STATES = [
-  'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA',
-  'HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
-  'MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ',
-  'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
-  'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY',
+  'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+  'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+  'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+  'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+  'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
 ]
 
 /* ─── Project Types ──────────────────────────────────────────── */
 const PROJECT_TYPES = [
-  { value: 'Concrete',   emoji: '🪨', label: 'Concrete',   desc: 'Driveways, patios, foundations' },
-  { value: 'Deck',       emoji: '🪵', label: 'Deck',        desc: 'Wood, composite, or Trex builds' },
-  { value: 'Fence',      emoji: '🔩', label: 'Fence',       desc: 'Privacy, chain-link, ornamental' },
-  { value: 'Commercial', emoji: '🏗️', label: 'Commercial',  desc: 'Large-scale commercial projects' },
+  { value: 'Concrete', emoji: '🪨', label: 'Concrete', desc: 'Driveways, patios, foundations' },
+  { value: 'Deck', emoji: '🪵', label: 'Deck', desc: 'Wood, composite, or Trex builds' },
+  { value: 'Fence', emoji: '🔩', label: 'Fence', desc: 'Privacy, chain-link, ornamental' },
+  { value: 'Commercial', emoji: '🏗️', label: 'Commercial', desc: 'Large-scale commercial projects' },
 ] as const
 
 type ProjectType = 'Concrete' | 'Deck' | 'Fence' | 'Commercial' | ''
@@ -34,17 +34,17 @@ const OWNERS = ['Ann Marie Page', 'Derek Page', 'Drew Valles', 'Unassigned']
 
 /* ─── Form Values ─────────────────────────────────────────────── */
 interface IntakeFormValues {
-  first_name:     string
-  last_name:      string
-  phone:          string
-  email:          string
+  first_name: string
+  last_name: string
+  phone: string
+  email: string
   street_address: string
-  city:           string
-  state:          string
-  postal_code:    string
+  city: string
+  state: string
+  postal_code: string
   assigned_owner: string
-  project_type:   ProjectType
-  notes:          string
+  project_type: ProjectType
+  notes: string
 }
 
 /* ─── Toast ───────────────────────────────────────────────────── */
@@ -142,20 +142,20 @@ export default function IntakePage() {
 
   /* Focus style helper */
   const onFocus = (name: string) => setFocusedField(name)
-  const onBlur  = () => setFocusedField(null)
+  const onBlur = () => setFocusedField(null)
 
   const dynInputStyle = (name: string, hasError?: boolean): React.CSSProperties => ({
     ...inputStyle(hasError),
     borderColor: hasError ? '#fca5a5' : focusedField === name ? '#1d3aa4' : '#e2e8f0',
-    background:  focusedField === name ? '#ffffff' : hasError ? '#fff5f5' : '#f8fafc',
-    boxShadow:   focusedField === name && !hasError ? '0 0 0 3px rgb(29 58 164 / 0.12)' : 'none',
+    background: focusedField === name ? '#ffffff' : hasError ? '#fff5f5' : '#f8fafc',
+    boxShadow: focusedField === name && !hasError ? '0 0 0 3px rgb(29 58 164 / 0.12)' : 'none',
   })
 
   const dynSelectStyle = (name: string, hasError?: boolean): React.CSSProperties => ({
     ...selectStyle(hasError),
     borderColor: hasError ? '#fca5a5' : focusedField === name ? '#1d3aa4' : '#e2e8f0',
-    background:  focusedField === name ? '#ffffff' : hasError ? '#fff5f5' : '#f8fafc',
-    boxShadow:   focusedField === name && !hasError ? '0 0 0 3px rgb(29 58 164 / 0.12)' : 'none',
+    background: focusedField === name ? '#ffffff' : hasError ? '#fff5f5' : '#f8fafc',
+    boxShadow: focusedField === name && !hasError ? '0 0 0 3px rgb(29 58 164 / 0.12)' : 'none',
   })
 
   /* ── Submit ─────────────────────────────────────────────────── */
@@ -164,20 +164,20 @@ export default function IntakePage() {
     try {
       const { data: inserted, error } = await supabase.from('jobs').insert([{
         // ── Granular name columns (new) ──────────────────────────
-        first_name:       data.first_name,
-        last_name:        data.last_name,
+        first_name: data.first_name,
+        last_name: data.last_name,
         // ── Combined fallback (legacy compat) ────────────────────
-        client_name:      `${data.first_name} ${data.last_name}`.trim(),
+        client_name: `${data.first_name} ${data.last_name}`.trim(),
 
         // ── Contact ──────────────────────────────────────────────
-        phone:            data.phone,
-        email:            data.email || null,
+        phone: data.phone,
+        email: data.email || null,
 
         // ── Granular address columns (new) ───────────────────────
-        street_address:   data.street_address,
-        city:             data.city,
-        state:            data.state,
-        postal_code:      data.postal_code || null,
+        street_address: data.street_address,
+        city: data.city,
+        state: data.state,
+        postal_code: data.postal_code || null,
         // ── Combined fallback (legacy compat) ────────────────────
         location_address: [
           data.street_address,
@@ -187,18 +187,21 @@ export default function IntakePage() {
         ].filter(Boolean).join(', '),
 
         // ── Project / job type ───────────────────────────────────
-        job_title:        data.project_type,   // surfaces in job hub title
-        project_type:     data.project_type,
+        job_title: data.project_type,   // surfaces in job hub title
+        project_type: data.project_type,
 
         // ── Sales pipeline ───────────────────────────────────────
-        status:           'New Lead',           // forced for pipeline drop-in
+        status: 'New Lead',           // forced for pipeline drop-in
 
         // ── Meta ─────────────────────────────────────────────────
-        notes:            data.notes || null,
-        assigned_owner:   data.assigned_owner,
+        notes: data.notes || null,
+        assigned_owner: data.assigned_owner,
       }]).select('id').single()
 
-      if (error) throw new Error(error.message)
+      if (error) {
+        console.error('Supabase Insert Error:', error)
+        throw new Error(error.message)
+      }
 
       const supabaseId = inserted?.id ?? null
 
@@ -209,18 +212,18 @@ export default function IntakePage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            id:             supabaseId,
-            first_name:     data.first_name,
-            last_name:      data.last_name,
-            phone:          data.phone,
-            email:          data.email    || null,
-            street:         data.street_address,
-            city:           data.city,
-            state:          data.state,
-            zip:            data.postal_code || null,
+            id: supabaseId,
+            first_name: data.first_name,
+            last_name: data.last_name,
+            phone: data.phone,
+            email: data.email || null,
+            street: data.street_address,
+            city: data.city,
+            state: data.state,
+            zip: data.postal_code || null,
             assigned_owner: data.assigned_owner,
-            project_type:   data.project_type,
-            notes:          data.notes    || null,
+            project_type: data.project_type,
+            notes: data.notes || null,
           }),
         }
       ).catch(() => { /* silent — webhook errors never surface to the user */ })
